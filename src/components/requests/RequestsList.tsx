@@ -66,6 +66,9 @@ interface ApiResponse {
 interface RequestsListProps {
   showActions?: boolean;
   limit?: number;
+  apiData?: ApiRequest[];
+  loading?: boolean;
+  error?: string | null;
 }
 
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
@@ -106,7 +109,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   };
 };
 
-export function RequestsList({ showActions = true, limit }: RequestsListProps) {
+export function RequestsList({ showActions = true, limit, apiData, loading: propLoading, error: propError }: RequestsListProps) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +118,19 @@ export function RequestsList({ showActions = true, limit }: RequestsListProps) {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const { toast } = useToast();
 
+  // Use props if provided, otherwise use internal state
+  const currentLoading = propLoading !== undefined ? propLoading : loading;
+  const currentError = propError !== undefined ? propError : error;
+
   useEffect(() => {
+    // If data is provided via props, use that instead of fetching
+    if (apiData) {
+      const transformedRequests = apiData.map(transformApiRequest);
+      setRequests(transformedRequests);
+      return;
+    }
+
+    // Otherwise, fetch data internally (for requests page)
     const fetchRequests = async () => {
       try {
         setLoading(true);
@@ -142,7 +157,7 @@ export function RequestsList({ showActions = true, limit }: RequestsListProps) {
     };
 
     fetchRequests();
-  }, []);
+  }, [apiData]);
 
   const handleApprove = (requestId: string) => {
     setRequests(prev => 
@@ -249,14 +264,14 @@ export function RequestsList({ showActions = true, limit }: RequestsListProps) {
       </CardHeader>
       
       <CardContent>
-        {loading ? (
+        {currentLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Loading requests...</span>
           </div>
-        ) : error ? (
+        ) : currentError ? (
           <div className="text-center py-8">
-            <p className="text-destructive">{error}</p>
+            <p className="text-destructive">{currentError}</p>
             <Button 
               variant="outline" 
               onClick={() => window.location.reload()} 

@@ -1,6 +1,48 @@
+import { useState, useEffect } from "react";
 import { StatsCard } from "./StatsCard";
 import { RequestsList } from "../requests/RequestsList";
 import { Clock, CheckCircle, XCircle, FileText } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface ApiRequest {
+  requestId: number;
+  customerName: string;
+  requestedByUserName: string;
+  abmStatus: string;
+  campaignType: string;
+  discountType: string;
+  discountValue: number;
+  orderQty: number;
+  skuName: string;
+  createdAt: string;
+  abmReviewedAt: string;
+  customerContact: number;
+  requestedByContact: string;
+  eligible: number;
+  eligibilityReason: string;
+  customerId: number;
+  ContactNumber: string;
+  skuId: number;
+  ABM_UserName: string;
+  requestedBy: number;
+  orderMode: number;
+  CustomerTypeId: number;
+  abmDiscountValue: number | null;
+  ABM_Id: number;
+  abmOrderQty: number | null;
+  reason: string | null;
+  abmDiscountType: string | null;
+  abmRemarks: string;
+}
+
+interface ApiResponse {
+  success: boolean;
+  code: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  requestId: string;
+  data: ApiRequest[];
+}
 
 const mockStats = [
   {
@@ -34,6 +76,44 @@ const mockStats = [
 ];
 
 export function Dashboard() {
+  const [apiData, setApiData] = useState<ApiRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:5678/webhook-test/admin-fetch-requests');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data: ApiResponse = await response.json();
+        
+        if (data.success && data.data) {
+          setApiData(data.data);
+        } else {
+          throw new Error(data.errorMessage || 'Failed to fetch requests');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch requests');
+        console.error('Failed to fetch requests:', err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch requests from the server.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [toast]);
+
   return (
     <div className="space-y-8">
       <div>
@@ -51,7 +131,13 @@ export function Dashboard() {
 
       <div>
         <h3 className="text-xl font-semibold text-foreground mb-4">Recent Requests</h3>
-        <RequestsList showActions={false} limit={5} />
+        <RequestsList 
+          showActions={false} 
+          limit={5} 
+          apiData={apiData}
+          loading={loading}
+          error={error}
+        />
       </div>
     </div>
   );
