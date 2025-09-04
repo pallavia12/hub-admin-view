@@ -1,21 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Check, X, Eye } from "lucide-react";
+import { Search, Check, X, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface ApiRequest {
+  requestId: number;
+  customerName: string;
+  requestedByUserName: string;
+  abmStatus: string;
+  campaignType: string;
+  discountType: string;
+  discountValue: number;
+  orderQty: number;
+  skuName: string;
+  createdAt: string;
+  abmReviewedAt: string;
+  customerContact: number;
+  requestedByContact: string;
+  eligible: number;
+  eligibilityReason: string;
+  customerId: number;
+  ContactNumber: string;
+  skuId: number;
+  ABM_UserName: string;
+  requestedBy: number;
+  orderMode: number;
+  CustomerTypeId: number;
+  abmDiscountValue: number | null;
+  ABM_Id: number;
+  abmOrderQty: number | null;
+  reason: string | null;
+  abmDiscountType: string | null;
+  abmRemarks: string;
+}
 
 interface Request {
   id: string;
   title: string;
   requester: string;
   department: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "escalated";
   priority: "low" | "medium" | "high";
   createdAt: string;
   description: string;
+  campaignType: string;
+  discountValue: number;
+  orderQty: number;
+  eligible: number;
+  eligibilityReason: string;
+}
+
+interface ApiResponse {
+  success: boolean;
+  code: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  requestId: string;
+  data: ApiRequest[];
 }
 
 interface RequestsListProps {
@@ -23,65 +68,81 @@ interface RequestsListProps {
   limit?: number;
 }
 
-const mockRequests: Request[] = [
-  {
-    id: "REQ-001",
-    title: "Budget Increase Request",
-    requester: "John Smith",
-    department: "Marketing",
-    status: "pending",
-    priority: "high",
-    createdAt: "2024-01-10",
-    description: "Request for additional budget allocation for Q1 marketing campaigns"
-  },
-  {
-    id: "REQ-002",
-    title: "New Software License",
-    requester: "Sarah Johnson",
-    department: "IT",
-    status: "pending",
-    priority: "medium",
-    createdAt: "2024-01-09",
-    description: "License request for development tools"
-  },
-  {
-    id: "REQ-003",
-    title: "Travel Authorization",
-    requester: "Mike Davis",
-    department: "Sales",
-    status: "approved",
-    priority: "low",
-    createdAt: "2024-01-08",
-    description: "Business travel request for client meetings"
-  },
-  {
-    id: "REQ-004",
-    title: "Equipment Purchase",
-    requester: "Emma Wilson",
-    department: "Operations",
-    status: "rejected",
-    priority: "medium",
-    createdAt: "2024-01-07",
-    description: "Request for new office equipment"
-  },
-  {
-    id: "REQ-005",
-    title: "Training Program Approval",
-    requester: "David Brown",
-    department: "HR",
-    status: "pending",
-    priority: "high",
-    createdAt: "2024-01-06",
-    description: "Approval for employee training program"
-  }
-];
+const transformApiRequest = (apiRequest: ApiRequest): Request => {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" => {
+    switch (abmStatus.toLowerCase()) {
+      case "approved": return "approved";
+      case "rejected": return "rejected";
+      case "escalated": return "escalated";
+      default: return "pending";
+    }
+  };
+
+  const getPriority = (eligible: number, discountValue: number): "low" | "medium" | "high" => {
+    if (!eligible) return "high";
+    if (discountValue > 100) return "high";
+    if (discountValue > 50) return "medium";
+    return "low";
+  };
+
+  return {
+    id: `REQ-${apiRequest.requestId}`,
+    title: `${apiRequest.campaignType} - ${apiRequest.skuName}`,
+    requester: apiRequest.customerName,
+    department: `Requested by: ${apiRequest.requestedByUserName}`,
+    status: getStatus(apiRequest.abmStatus),
+    priority: getPriority(apiRequest.eligible, apiRequest.discountValue),
+    createdAt: formatDate(apiRequest.createdAt),
+    description: `${apiRequest.discountType}: ₹${apiRequest.discountValue} | Order Qty: ${apiRequest.orderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
+    campaignType: apiRequest.campaignType,
+    discountValue: apiRequest.discountValue,
+    orderQty: apiRequest.orderQty,
+    eligible: apiRequest.eligible,
+    eligibilityReason: apiRequest.eligibilityReason
+  };
+};
 
 export function RequestsList({ showActions = true, limit }: RequestsListProps) {
-  const [requests, setRequests] = useState(mockRequests);
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:5678/webhook-test/admin-fetch-requests');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data: ApiResponse = await response.json();
+        
+        if (data.success && data.data) {
+          const transformedRequests = data.data.map(transformApiRequest);
+          setRequests(transformedRequests);
+        } else {
+          throw new Error(data.errorMessage || 'Failed to fetch requests');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch requests');
+        console.error('Failed to fetch requests:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, []);
 
   const handleApprove = (requestId: string) => {
     setRequests(prev => 
@@ -126,6 +187,7 @@ export function RequestsList({ showActions = true, limit }: RequestsListProps) {
       case "pending": return "bg-warning text-warning-foreground";
       case "approved": return "bg-success text-success-foreground";
       case "rejected": return "bg-destructive text-destructive-foreground";
+      case "escalated": return "bg-accent text-accent-foreground";
       default: return "bg-muted text-muted-foreground";
     }
   };
@@ -166,6 +228,7 @@ export function RequestsList({ showActions = true, limit }: RequestsListProps) {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="escalated">Escalated</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -186,8 +249,25 @@ export function RequestsList({ showActions = true, limit }: RequestsListProps) {
       </CardHeader>
       
       <CardContent>
-        <div className="space-y-4">
-          {filteredRequests.map((request) => (
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Loading requests...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-destructive">{error}</p>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.reload()} 
+              className="mt-4"
+            >
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredRequests.map((request) => (
             <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-2 flex-1">
@@ -247,12 +327,13 @@ export function RequestsList({ showActions = true, limit }: RequestsListProps) {
             </div>
           ))}
           
-          {filteredRequests.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No requests found matching your criteria.
-            </div>
-          )}
-        </div>
+            {filteredRequests.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No requests found matching your criteria.
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
