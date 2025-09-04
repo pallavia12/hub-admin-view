@@ -1,10 +1,22 @@
 import { useState } from "react";
+import { LoginForm } from "@/components/auth/LoginForm";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { RequestsList } from "@/components/requests/RequestsList";
 
 const Index = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState("");
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  const handleLogin = (userUsername: string) => {
+    setUsername(userUsername);
+    setIsLoggedIn(true);
+  };
+
+  if (!isLoggedIn) {
+    return <LoginForm onLogin={handleLogin} />;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
