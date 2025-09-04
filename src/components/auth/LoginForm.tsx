@@ -23,7 +23,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
           <CardTitle className="text-2xl font-bold text-foreground">
-            ABM Approval Portal
+            Admin Approval Portal
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Enter your Asgard username to continue
