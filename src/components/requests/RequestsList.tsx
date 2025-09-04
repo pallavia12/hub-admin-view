@@ -66,9 +66,6 @@ interface ApiResponse {
 interface RequestsListProps {
   showActions?: boolean;
   limit?: number;
-  apiData?: ApiRequest[];
-  loading?: boolean;
-  error?: string | null;
 }
 
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
@@ -109,7 +106,10 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   };
 };
 
-export function RequestsList({ showActions = true, limit, apiData, loading: propLoading, error: propError }: RequestsListProps) {
+export function RequestsList({ 
+  showActions = true, 
+  limit
+}: RequestsListProps) {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,23 +118,16 @@ export function RequestsList({ showActions = true, limit, apiData, loading: prop
   const [priorityFilter, setPriorityFilter] = useState("all");
   const { toast } = useToast();
 
-  // Use props if provided, otherwise use internal state
-  const currentLoading = propLoading !== undefined ? propLoading : loading;
-  const currentError = propError !== undefined ? propError : error;
-
   useEffect(() => {
-    // If data is provided via props, use that instead of fetching
-    if (apiData) {
-      const transformedRequests = apiData.map(transformApiRequest);
-      setRequests(transformedRequests);
-      return;
-    }
-
-    // Otherwise, fetch data internally (for requests page)
     const fetchRequests = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5678/webhook-test/admin-fetch-requests');
+        const response = await fetch('http://localhost:5678/webhook-test/admin-fetch-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -151,13 +144,18 @@ export function RequestsList({ showActions = true, limit, apiData, loading: prop
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch requests');
         console.error('Failed to fetch requests:', err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch requests from the server.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchRequests();
-  }, [apiData]);
+  }, [toast]);
 
   const handleApprove = (requestId: string) => {
     setRequests(prev => 
@@ -264,14 +262,14 @@ export function RequestsList({ showActions = true, limit, apiData, loading: prop
       </CardHeader>
       
       <CardContent>
-        {currentLoading ? (
+        {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Loading requests...</span>
           </div>
-        ) : currentError ? (
+        ) : error ? (
           <div className="text-center py-8">
-            <p className="text-destructive">{currentError}</p>
+            <p className="text-destructive">{error}</p>
             <Button 
               variant="outline" 
               onClick={() => window.location.reload()} 
