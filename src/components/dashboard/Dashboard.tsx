@@ -85,7 +85,12 @@ export function Dashboard() {
     const fetchRequests = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5678/webhook-test/admin-fetch-requests');
+        const response = await fetch('http://localhost:5678/webhook-test/admin-fetch-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
