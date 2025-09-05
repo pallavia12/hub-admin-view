@@ -64,6 +64,10 @@ interface Request {
   abmRemarks: string;
   abmContactNumber: string;
   escalatedAt: string;
+  escalatedAtTime: string;
+  skuName: string | null;
+  skuId: number | null;
+  orderMode: number | null;
   acceptedAt?: string;
   tat?: string;
 }
@@ -144,7 +148,11 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     abmUserName: apiRequest.ABM_UserName,
     abmRemarks: apiRequest.abmRemarks,
     abmContactNumber: apiRequest.ContactNumber,
-    escalatedAt: escalatedDateTime.date
+    escalatedAt: escalatedDateTime.date,
+    escalatedAtTime: escalatedDateTime.time,
+    skuName: apiRequest.skuName,
+    skuId: apiRequest.skuId,
+    orderMode: apiRequest.orderMode
   };
 };
 
@@ -394,11 +402,28 @@ export function RequestsList({
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Campaign</div>
                   <div className="text-foreground">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
+                  {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && (
+                    <div className="text-muted-foreground text-sm mt-1">
+                      SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Order</div>
                   <div className="text-foreground">{request.orderQty} kg</div>
-                  <div className="text-muted-foreground text-sm">Delivery</div>
+                  <div className="text-muted-foreground text-sm">
+                    {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Eligibility Section */}
+              <div className="mb-4">
+                <div className="text-muted-foreground text-sm mb-1">Eligibility</div>
+                <div className="text-foreground">
+                  {request.eligible === 1 
+                    ? 'Eligible' 
+                    : `Not Eligible - ${request.eligibilityReason}`}
                 </div>
               </div>
 
@@ -434,7 +459,7 @@ export function RequestsList({
                   )}
                 </div>
                 <div>
-                  <div className="text-muted-foreground text-sm mb-1">Requested Date</div>
+                  <div className="text-muted-foreground text-sm mb-1">Requested At</div>
                   <div className="text-foreground">{request.requestedDate}</div>
                   <div className="text-muted-foreground text-sm">{request.requestedTime}</div>
                   
@@ -443,6 +468,7 @@ export function RequestsList({
                     <div className="mt-4">
                       <div className="text-muted-foreground text-sm mb-1">Escalated At</div>
                       <div className="text-foreground">{request.escalatedAt}</div>
+                      <div className="text-muted-foreground text-sm">{request.escalatedAtTime}</div>
                     </div>
                   )}
                 </div>
