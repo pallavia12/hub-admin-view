@@ -44,6 +44,7 @@ interface Request {
   status: "pending" | "approved" | "rejected" | "escalated" | "accepted";
   priority: "low" | "medium" | "high";
   createdAt: string;
+  createdAtISO: string; // Store original ISO string for calculations
   description: string;
   campaignType: string;
   discountValue: number;
@@ -125,6 +126,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     status: getStatus(apiRequest.abmStatus),
     priority: getPriority(apiRequest.eligible, apiRequest.discountValue),
     createdAt: formatDate(apiRequest.createdAt),
+    createdAtISO: apiRequest.createdAt, // Store original ISO string
     description: `${apiRequest.discountType}: ${apiRequest.discountValue ? `₹${apiRequest.discountValue}` : 'No discount'} | Order Qty: ${apiRequest.orderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
     campaignType: apiRequest.campaignType,
     discountValue: safeDiscountValue,
@@ -230,10 +232,21 @@ export function RequestsList({
     };
     fetchRequests();
   }, [toast]);
-  const calculateTAT = (createdAt: string, acceptedAt: string) => {
-    const created = new Date(createdAt);
+  const calculateTAT = (createdAtISO: string, acceptedAt: string) => {
+    const created = new Date(createdAtISO);
     const accepted = new Date(acceptedAt);
+    
+    // Validate dates
+    if (isNaN(created.getTime()) || isNaN(accepted.getTime())) {
+      return "Invalid date";
+    }
+    
     const diffMs = accepted.getTime() - created.getTime();
+    
+    if (diffMs < 0) {
+      return "Invalid time range";
+    }
+    
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
     const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
@@ -262,7 +275,7 @@ export function RequestsList({
 
     setRequests(prev => prev.map(req => {
       if (req.id === requestId) {
-        const tat = calculateTAT(req.createdAt, acceptedAt);
+        const tat = calculateTAT(req.createdAtISO, acceptedAt);
         return {
           ...req,
           status: "accepted" as const,
@@ -301,7 +314,7 @@ export function RequestsList({
 
     setRequests(prev => prev.map(req => {
       if (req.id === requestId) {
-        const tat = calculateTAT(req.createdAt, rejectedAt);
+        const tat = calculateTAT(req.createdAtISO, rejectedAt);
         return {
           ...req,
           status: "rejected" as const,
@@ -497,36 +510,44 @@ export function RequestsList({
                 </div>}
 
               {/* Status badge for approved/rejected/accepted requests */}
-              {request.status === "accepted" && <div className="pt-4 border-t border-border">
+              {request.status === "accepted" && request.acceptedAt && <div className="pt-4 border-t border-border">
                   <div className="text-foreground font-semibold">
-                    ACCEPTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-              }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
+                    ACCEPTED {(() => {
+                      const date = new Date(request.acceptedAt);
+                      return isNaN(date.getTime()) ? 'Invalid Date' : 
+                        date.toLocaleString('en-GB', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+                    })()}
                   </div>
                   <div className="text-muted-foreground text-sm">
-                    TAT: {request.tat}
+                    TAT: {request.tat || 'Not calculated'}
                   </div>
                 </div>}
-              {request.status === "rejected" && <div className="pt-4 border-t border-border">
+              {request.status === "rejected" && request.acceptedAt && <div className="pt-4 border-t border-border">
                   <div className="text-foreground font-semibold">
-                    REJECTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-              }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
+                    REJECTED {(() => {
+                      const date = new Date(request.acceptedAt);
+                      return isNaN(date.getTime()) ? 'Invalid Date' : 
+                        date.toLocaleString('en-GB', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+                    })()}
                   </div>
                   <div className="text-muted-foreground text-sm">
-                    TAT: {request.tat}
+                    TAT: {request.tat || 'Not calculated'}
                   </div>
                 </div>}
               {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && request.status !== "rejected" && <div className="pt-4 border-t border-border">
