@@ -449,15 +449,12 @@ export function RequestsList({
               </div>
 
               {/* Action Buttons */}
-              {showActions && (request.status === "pending" || request.status === "escalated") && <div className="flex items-center gap-3 pt-4 border-t border-border">
-                  <Button variant="outline" className="flex-1 py-3 text-base font-medium">
-                    Escalate
+              {showActions && <div className="flex items-center gap-3 pt-4 border-t border-border">
+                  <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
+                    Accept
                   </Button>
                   <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
                     Reject
-                  </Button>
-                  <Button variant="outline" className="flex-1 py-3 text-base font-medium">
-                    Modify
                   </Button>
                 </div>}
 
