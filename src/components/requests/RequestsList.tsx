@@ -258,19 +258,36 @@ export function RequestsList({
     
     // Send data to backend
     try {
-      await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        mode: 'cors',
         body: JSON.stringify({
           RequestId: requestId.replace('REQ-', ''),
           AdminUsername: 'admin', // Replace with actual admin username from auth context
           AdminReviewedAt: adminReviewedAt
         })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      toast({
+        title: "Backend Updated",
+        description: `Approval sent to backend successfully.`,
+        variant: "default"
+      });
     } catch (error) {
       console.error('Failed to send approval data to backend:', error);
+      toast({
+        title: "Backend Error",
+        description: `Failed to send approval to backend. The request is updated locally.`,
+        variant: "destructive"
+      });
     }
 
     setRequests(prev => prev.map(req => {
@@ -297,19 +314,36 @@ export function RequestsList({
     
     // Send data to backend
     try {
-      await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        mode: 'cors',
         body: JSON.stringify({
           RequestId: requestId.replace('REQ-', ''),
           AdminUsername: 'admin', // Replace with actual admin username from auth context
           AdminReviewedAt: adminReviewedAt
         })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      toast({
+        title: "Backend Updated",
+        description: `Rejection sent to backend successfully.`,
+        variant: "default"
+      });
     } catch (error) {
       console.error('Failed to send rejection data to backend:', error);
+      toast({
+        title: "Backend Error",
+        description: `Failed to send rejection to backend. The request is updated locally.`,
+        variant: "destructive"
+      });
     }
 
     setRequests(prev => prev.map(req => {
