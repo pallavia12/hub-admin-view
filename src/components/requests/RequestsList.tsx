@@ -52,6 +52,15 @@ interface Request {
   orderQty: number;
   eligible: number;
   eligibilityReason: string;
+  customerId: number;
+  contactNumber: string;
+  requestedByContact: string;
+  discountType: string;
+  requestedDate: string;
+  requestedTime: string;
+  abmId: number;
+  abmUserName: string;
+  abmRemarks: string;
 }
 
 interface ApiResponse {
@@ -73,6 +82,14 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString()
+    };
+  };
+
   const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" => {
     switch (abmStatus.toLowerCase()) {
       case "approved": return "approved";
@@ -92,6 +109,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const safeDiscountValue = apiRequest.discountValue ?? 0;
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
 
+  const dateTime = formatDateTime(apiRequest.createdAt);
+
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
@@ -105,7 +124,17 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     discountValue: safeDiscountValue,
     orderQty: apiRequest.orderQty,
     eligible: apiRequest.eligible,
-    eligibilityReason: apiRequest.eligibilityReason
+    eligibilityReason: apiRequest.eligibilityReason,
+    // Additional fields for the new UI requirements
+    customerId: apiRequest.customerId,
+    contactNumber: apiRequest.ContactNumber,
+    requestedByContact: apiRequest.requestedByContact,
+    discountType: apiRequest.discountType,
+    requestedDate: dateTime.date,
+    requestedTime: dateTime.time,
+    abmId: apiRequest.ABM_Id,
+    abmUserName: apiRequest.ABM_UserName,
+    abmRemarks: apiRequest.abmRemarks
   };
 };
 
@@ -333,8 +362,10 @@ export function RequestsList({
               {/* Customer Section */}
               <div className="mb-4">
                 <div className="text-muted-foreground text-sm mb-1">Customer</div>
-                <div className="text-foreground font-semibold text-lg">{request.requester}</div>
-                <div className="text-muted-foreground text-sm">Contact info here</div>
+                <div className="text-foreground font-semibold text-lg">
+                  {request.requester} ({request.customerId})
+                </div>
+                <div className="text-muted-foreground text-sm">{request.contactNumber}</div>
               </div>
 
               {/* Campaign and Order Grid */}
@@ -354,7 +385,9 @@ export function RequestsList({
               <div className="mb-4">
                 <div className="text-muted-foreground text-sm mb-1">Discount</div>
                 <div className="text-foreground">
-                  {request.discountValue > 0 ? `₹${request.discountValue}` : 'No discount specified'}
+                  {request.discountValue > 0 
+                    ? `₹${request.discountValue} (${request.discountType})` 
+                    : 'No discount specified'}
                 </div>
               </div>
 
@@ -363,16 +396,30 @@ export function RequestsList({
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Requested By</div>
                   <div className="text-foreground">{request.department.replace('Requested by: ', '')}</div>
-                  <div className="text-muted-foreground text-sm">Contact info</div>
+                  <div className="text-muted-foreground text-sm">{request.requestedByContact}</div>
                 </div>
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Requested Date</div>
-                  <div className="text-foreground">{request.createdAt}</div>
+                  <div className="text-foreground">{request.requestedDate}</div>
+                  <div className="text-muted-foreground text-sm">{request.requestedTime}</div>
                 </div>
               </div>
 
+              {/* Escalated By Section - Show only for escalated requests */}
+              {request.status === "escalated" && (
+                <div className="mb-6">
+                  <div className="text-muted-foreground text-sm mb-1">Escalated By</div>
+                  <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
+                  {request.abmRemarks && request.abmRemarks.trim() !== "" && (
+                    <div className="text-muted-foreground text-sm mt-1">
+                      Remarks: {request.abmRemarks}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Action Buttons */}
-              {showActions && request.status === "pending" && (
+              {showActions && (request.status === "pending" || request.status === "escalated") && (
                 <div className="flex items-center gap-3 pt-4 border-t border-border">
                   <Button
                     onClick={() => handleApprove(request.id)}
@@ -396,8 +443,8 @@ export function RequestsList({
                 </div>
               )}
 
-              {/* Status badge for non-pending requests */}
-              {request.status !== "pending" && (
+              {/* Status badge for approved/rejected requests */}
+              {request.status !== "pending" && request.status !== "escalated" && (
                 <div className="pt-4 border-t border-border">
                   <Badge className={getStatusColor(request.status)}>
                     {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
