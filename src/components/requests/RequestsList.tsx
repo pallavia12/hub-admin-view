@@ -43,7 +43,7 @@ interface Request {
   title: string;
   requester: string;
   department: string;
-  status: "pending" | "approved" | "rejected" | "escalated";
+  status: "pending" | "approved" | "rejected" | "escalated" | "accepted";
   priority: "low" | "medium" | "high";
   createdAt: string;
   description: string;
@@ -61,6 +61,10 @@ interface Request {
   abmId: number;
   abmUserName: string;
   abmRemarks: string;
+  abmContactNumber: string;
+  escalatedAt: string;
+  acceptedAt?: string;
+  tat?: string;
 }
 
 interface ApiResponse {
@@ -90,11 +94,12 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     };
   };
 
-  const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" => {
+  const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" | "accepted" => {
     switch (abmStatus.toLowerCase()) {
       case "approved": return "approved";
       case "rejected": return "rejected";
       case "escalated": return "escalated";
+      case "accepted": return "accepted";
       default: return "pending";
     }
   };
@@ -110,6 +115,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
 
   const dateTime = formatDateTime(apiRequest.createdAt);
+  const escalatedDateTime = formatDateTime(apiRequest.abmReviewedAt);
 
   return {
     id: `REQ-${apiRequest.requestId}`,
@@ -134,7 +140,9 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     requestedTime: dateTime.time,
     abmId: apiRequest.ABM_Id,
     abmUserName: apiRequest.ABM_UserName,
-    abmRemarks: apiRequest.abmRemarks
+    abmRemarks: apiRequest.abmRemarks,
+    abmContactNumber: apiRequest.ContactNumber,
+    escalatedAt: escalatedDateTime.date
   };
 };
 
@@ -147,7 +155,7 @@ export function RequestsList({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -221,15 +229,37 @@ export function RequestsList({
     fetchRequests();
   }, [toast]);
 
+  const calculateTAT = (createdAt: string, acceptedAt: string) => {
+    const created = new Date(createdAt);
+    const accepted = new Date(acceptedAt);
+    const diffMs = accepted.getTime() - created.getTime();
+    
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    return `${days} days, ${hours} hours, ${minutes} minutes`;
+  };
+
   const handleApprove = (requestId: string) => {
+    const acceptedAt = new Date().toISOString();
     setRequests(prev => 
-      prev.map(req => 
-        req.id === requestId ? { ...req, status: "approved" as const } : req
-      )
+      prev.map(req => {
+        if (req.id === requestId) {
+          const tat = calculateTAT(req.createdAt, acceptedAt);
+          return { 
+            ...req, 
+            status: "accepted" as const,
+            acceptedAt,
+            tat
+          };
+        }
+        return req;
+      })
     );
     toast({
-      title: "Request Approved",
-      description: `Request ${requestId} has been approved successfully.`,
+      title: "Request Accepted",
+      description: `Request ${requestId} has been accepted successfully.`,
       variant: "default"
     });
   };
@@ -253,9 +283,8 @@ export function RequestsList({
                           req.requester.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           req.department.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || req.status === statusFilter;
-      const matchesPriority = priorityFilter === "all" || req.priority === priorityFilter;
       
-      return matchesSearch && matchesStatus && matchesPriority;
+      return matchesSearch && matchesStatus;
     })
     .slice(0, limit);
 
@@ -263,6 +292,7 @@ export function RequestsList({
     switch (status) {
       case "pending": return "bg-warning text-warning-foreground";
       case "approved": return "bg-success text-success-foreground";
+      case "accepted": return "bg-success text-success-foreground";
       case "rejected": return "bg-destructive text-destructive-foreground";
       case "escalated": return "bg-accent text-accent-foreground";
       default: return "bg-muted text-muted-foreground";
@@ -304,20 +334,9 @@ export function RequestsList({
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="escalated">Escalated</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -392,7 +411,7 @@ export function RequestsList({
               </div>
 
               {/* Requested By and Date Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Requested By</div>
                   <div className="text-foreground">{request.department.replace('Requested by: ', '')}</div>
@@ -405,11 +424,20 @@ export function RequestsList({
                 </div>
               </div>
 
+              {/* Escalated At Section - Show only for escalated requests */}
+              {request.status === "escalated" && (
+                <div className="mb-6">
+                  <div className="text-muted-foreground text-sm mb-1">Escalated At</div>
+                  <div className="text-foreground">{request.escalatedAt}</div>
+                </div>
+              )}
+
               {/* Escalated By Section - Show only for escalated requests */}
               {request.status === "escalated" && (
                 <div className="mb-6">
                   <div className="text-muted-foreground text-sm mb-1">Escalated By</div>
                   <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
+                  <div className="text-muted-foreground text-sm">ABM Contact Number: {request.abmContactNumber}</div>
                   {request.abmRemarks && request.abmRemarks.trim() !== "" && (
                     <div className="text-muted-foreground text-sm mt-1">
                       Remarks: {request.abmRemarks}
@@ -443,8 +471,26 @@ export function RequestsList({
                 </div>
               )}
 
-              {/* Status badge for approved/rejected requests */}
-              {request.status !== "pending" && request.status !== "escalated" && (
+              {/* Status badge for approved/rejected/accepted requests */}
+              {request.status === "accepted" && (
+                <div className="pt-4 border-t border-border">
+                  <div className="text-foreground font-semibold">
+                    ACCEPTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
+                      year: 'numeric',
+                      month: '2-digit', 
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
+                  </div>
+                  <div className="text-muted-foreground text-sm">
+                    TAT: {request.tat}
+                  </div>
+                </div>
+              )}
+              {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && (
                 <div className="pt-4 border-t border-border">
                   <Badge className={getStatusColor(request.status)}>
                     {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
