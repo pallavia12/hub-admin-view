@@ -558,8 +558,8 @@ export function RequestsList({
                 </div>
               </div>
 
-              {/* Action Buttons - Show for pending/escalated requests that haven't been acted upon */}
-              {showActions && (request.status === "pending" || request.status === "escalated" || request.abmStatus === "ESCALATED") && !actedRequests.has(request.id) && (
+              {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
+              {showActions && !actedRequests.has(request.id) && (
                 <div className="flex items-center gap-3 pt-4 border-t border-border">
                   <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
                     Accept
