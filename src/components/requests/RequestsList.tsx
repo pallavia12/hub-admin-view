@@ -387,17 +387,11 @@ export function RequestsList({
           <div className="space-y-4">
             {filteredRequests.map((request) => (
             <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
-              {/* Header with checkbox, ID, abmStatus and eligible badge */}
+              {/* Header with checkbox, ID and eligible badge */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <input type="checkbox" className="w-4 h-4 rounded border border-border" />
                   <span className="text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
-                  {/* ABM Status - Prominent display */}
-                  {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && (
-                    <div className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm uppercase tracking-wider shadow-lg">
-                      {request.abmStatus}
-                    </div>
-                  )}
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   {request.eligible === 1 ? (
@@ -416,6 +410,22 @@ export function RequestsList({
                   )}
                 </div>
               </div>
+
+              {/* ABM Status - Clean and prominent display */}
+              {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && (
+                <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs uppercase tracking-wide font-medium text-muted-foreground">ABM Decision</div>
+                    <div className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wide ${
+                      request.abmStatus === "ACCEPTED" 
+                        ? "bg-success/20 text-success-foreground border border-success/30" 
+                        : "bg-warning/20 text-warning-foreground border border-warning/30"
+                    }`}>
+                      {request.abmStatus}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Customer Section */}
               <div className="mb-3">
