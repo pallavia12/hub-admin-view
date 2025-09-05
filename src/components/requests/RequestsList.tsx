@@ -105,7 +105,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
       case "accepted":
         return "accepted";
       case "modified":
-        return "approved"; // Treat MODIFIED as approved since it was processed by ABM
+        return "approved";
+      // Treat MODIFIED as approved since it was processed by ABM
       default:
         return "pending";
     }
@@ -117,22 +118,12 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     return "low";
   };
   // Handle MODIFIED status - use ABM values if available
-  const finalOrderQty = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmOrderQty !== null 
-    ? apiRequest.abmOrderQty 
-    : apiRequest.orderQty;
-  
-  const finalDiscountValue = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null 
-    ? apiRequest.abmDiscountValue 
-    : (apiRequest.discountValue ?? 0);
-  
-  const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== ""
-    ? apiRequest.abmDiscountType 
-    : apiRequest.discountType;
-
+  const finalOrderQty = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmOrderQty !== null ? apiRequest.abmOrderQty : apiRequest.orderQty;
+  const finalDiscountValue = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null ? apiRequest.abmDiscountValue : apiRequest.discountValue ?? 0;
+  const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== "" ? apiRequest.abmDiscountType : apiRequest.discountType;
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
   const dateTime = formatDateTime(apiRequest.createdAt);
   const escalatedDateTime = formatDateTime(apiRequest.abmReviewedAt);
-  
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
@@ -141,7 +132,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     status: getStatus(apiRequest.abmStatus),
     priority: getPriority(apiRequest.eligible, finalDiscountValue),
     createdAt: formatDate(apiRequest.createdAt),
-    createdAtISO: apiRequest.createdAt, // Store original ISO string
+    createdAtISO: apiRequest.createdAt,
+    // Store original ISO string
     description: `${finalDiscountType}: ${finalDiscountValue ? `₹${finalDiscountValue}` : 'No discount'} | Order Qty: ${finalOrderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
     campaignType: apiRequest.campaignType,
     discountValue: finalDiscountValue,
@@ -251,18 +243,15 @@ export function RequestsList({
   const calculateTAT = (createdAtISO: string, acceptedAt: string) => {
     const created = new Date(createdAtISO);
     const accepted = new Date(acceptedAt);
-    
+
     // Validate dates
     if (isNaN(created.getTime()) || isNaN(accepted.getTime())) {
       return "Invalid date";
     }
-    
     const diffMs = accepted.getTime() - created.getTime();
-    
     if (diffMs < 0) {
       return "Invalid time range";
     }
-    
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
     const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
@@ -271,22 +260,22 @@ export function RequestsList({
   const handleApprove = async (requestId: string) => {
     const acceptedAt = new Date().toISOString();
     // Convert to IST format
-    const istDate = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+    const istDate = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000);
     const adminReviewedAt = istDate.toISOString().replace('T', ' ').substring(0, 19);
-    
+
     // Get username from localStorage
     const adminUsername = localStorage.getItem('username') || 'admin';
-    
+
     // Add to acted requests to hide buttons
     setActedRequests(prev => new Set([...prev, requestId]));
-    
+
     // Send data to backend
     try {
       const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Accept': 'application/json'
         },
         mode: 'cors',
         body: JSON.stringify({
@@ -296,11 +285,9 @@ export function RequestsList({
           AdminStatus: 'ACCEPTED'
         })
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       toast({
         title: "Backend Updated",
         description: `Approval sent to backend successfully.`,
@@ -314,7 +301,6 @@ export function RequestsList({
         variant: "destructive"
       });
     }
-
     setRequests(prev => prev.map(req => {
       if (req.id === requestId) {
         const tat = calculateTAT(req.createdAtISO, acceptedAt);
@@ -336,22 +322,22 @@ export function RequestsList({
   const handleReject = async (requestId: string) => {
     const rejectedAt = new Date().toISOString();
     // Convert to IST format
-    const istDate = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+    const istDate = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000);
     const adminReviewedAt = istDate.toISOString().replace('T', ' ').substring(0, 19);
-    
+
     // Get username from localStorage
     const adminUsername = localStorage.getItem('username') || 'admin';
-    
+
     // Add to acted requests to hide buttons
     setActedRequests(prev => new Set([...prev, requestId]));
-    
+
     // Send data to backend
     try {
       const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Accept': 'application/json'
         },
         mode: 'cors',
         body: JSON.stringify({
@@ -361,11 +347,9 @@ export function RequestsList({
           AdminStatus: 'REJECTED'
         })
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       toast({
         title: "Backend Updated",
         description: `Rejection sent to backend successfully.`,
@@ -379,7 +363,6 @@ export function RequestsList({
         variant: "destructive"
       });
     }
-
     setRequests(prev => prev.map(req => {
       if (req.id === requestId) {
         const tat = calculateTAT(req.createdAtISO, rejectedAt);
@@ -495,18 +478,12 @@ export function RequestsList({
               {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED" || request.abmStatus === "ESCALATED") && <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
                   <div className="flex items-center gap-2">
                     <div className="text-sm font-medium text-gray-600">ABM Decision</div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : 
-                      request.abmStatus === "ESCALATED" ? "bg-orange-500 text-white" :
-                      "bg-yellow-500 text-white"
-                    }`}>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : request.abmStatus === "ESCALATED" ? "bg-orange-500 text-white" : "bg-yellow-500 text-white"}`}>
                       {request.abmStatus}
                     </div>
-                    {request.abmRemarks && request.abmRemarks.trim() !== "" && request.abmRemarks !== "null" && (
-                      <div className="text-sm text-gray-600 ml-2">
+                    {request.abmRemarks && request.abmRemarks.trim() !== "" && request.abmRemarks !== "null" && <div className="text-sm text-gray-600 ml-2">
                         <span className="font-medium">Remarks:</span> {request.abmRemarks}
-                      </div>
-                    )}
+                      </div>}
                   </div>
                 </div>}
 
@@ -553,7 +530,7 @@ export function RequestsList({
                   <div className="text-gray-500 text-sm">{request.requestedByContact}</div>
                   
                    {/* Escalated By Section - Show for escalated, accepted, rejected, and modified requests */}
-                    {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") ? <div className="mt-3">
+                    {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED" ? <div className="mt-3">
                        <div className="text-gray-500 text-sm font-medium mb-1">Escalated By</div>
                        <div className="text-foreground text-base font-medium">{request.abmUserName} (ID: {request.abmId})</div>
                        <div className="text-gray-500 text-sm">{request.abmContactNumber}</div>
@@ -574,33 +551,30 @@ export function RequestsList({
               </div>
 
               {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
-              {showActions && !actedRequests.has(request.id) && (
-                <div className="flex items-center gap-3 pt-4 border-t border-border">
+              {showActions && !actedRequests.has(request.id) && <div className="flex items-center gap-3 pt-4 border-t border-border">
                   <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
                     Accept
                   </Button>
                   <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
                     Reject
                   </Button>
-                </div>
-              )}
+                </div>}
 
               {/* Status badge for approved/rejected/accepted requests */}
               {request.status === "accepted" && request.acceptedAt && <div className="pt-4 border-t border-border">
                   <div className="text-foreground font-semibold">
                     ACCEPTED {(() => {
-                      const date = new Date(request.acceptedAt);
-                      return isNaN(date.getTime()) ? 'Invalid Date' : 
-                        date.toLocaleString('en-GB', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
-                    })()}
+                const date = new Date(request.acceptedAt);
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+              })()}
                   </div>
                   <div className="text-muted-foreground text-sm">
                     TAT: {request.tat || 'Not calculated'}
@@ -609,27 +583,24 @@ export function RequestsList({
               {request.status === "rejected" && request.acceptedAt && <div className="pt-4 border-t border-border">
                   <div className="text-foreground font-semibold">
                     REJECTED {(() => {
-                      const date = new Date(request.acceptedAt);
-                      return isNaN(date.getTime()) ? 'Invalid Date' : 
-                        date.toLocaleString('en-GB', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
-                    })()}
+                const date = new Date(request.acceptedAt);
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+              })()}
                   </div>
                   <div className="text-muted-foreground text-sm">
                     TAT: {request.tat || 'Not calculated'}
                   </div>
                 </div>}
               {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && request.status !== "rejected" && <div className="pt-4 border-t border-border">
-                  <Badge className={getStatusColor(request.status)}>
-                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                  </Badge>
+                  
                 </div>}
             </div>)}
           
