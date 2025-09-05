@@ -43,7 +43,7 @@ interface Request {
   title: string;
   requester: string;
   department: string;
-  status: "pending" | "approved" | "rejected" | "escalated" | "accepted";
+  status: "pending" | "approved" | "rejected" | "escalated";
   priority: "low" | "medium" | "high";
   createdAt: string;
   description: string;
@@ -52,25 +52,6 @@ interface Request {
   orderQty: number;
   eligible: number;
   eligibilityReason: string;
-  customerId: number;
-  contactNumber: string;
-  requestedByContact: string;
-  requestedBy: number;
-  discountType: string;
-  requestedDate: string;
-  requestedTime: string;
-  abmId: number;
-  abmUserName: string;
-  abmRemarks: string;
-  abmContactNumber: string;
-  escalatedAt: string;
-  escalatedAtTime: string;
-  skuName: string | null;
-  skuId: number | null;
-  orderMode: number | null;
-  acceptedAt?: string;
-  tat?: string;
-  abmStatus: string;
 }
 
 interface ApiResponse {
@@ -92,20 +73,11 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString()
-    };
-  };
-
-  const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" | "accepted" => {
+  const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" => {
     switch (abmStatus.toLowerCase()) {
       case "approved": return "approved";
       case "rejected": return "rejected";
       case "escalated": return "escalated";
-      case "accepted": return "accepted";
       default: return "pending";
     }
   };
@@ -120,9 +92,6 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const safeDiscountValue = apiRequest.discountValue ?? 0;
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
 
-  const dateTime = formatDateTime(apiRequest.createdAt);
-  const escalatedDateTime = formatDateTime(apiRequest.abmReviewedAt);
-
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
@@ -136,25 +105,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     discountValue: safeDiscountValue,
     orderQty: apiRequest.orderQty,
     eligible: apiRequest.eligible,
-    eligibilityReason: apiRequest.eligibilityReason,
-    // Additional fields for the new UI requirements
-    customerId: apiRequest.customerId,
-    contactNumber: apiRequest.ContactNumber,
-    requestedByContact: apiRequest.requestedByContact,
-    requestedBy: apiRequest.requestedBy,
-    discountType: apiRequest.discountType,
-    requestedDate: dateTime.date,
-    requestedTime: dateTime.time,
-    abmId: apiRequest.ABM_Id,
-    abmUserName: apiRequest.ABM_UserName,
-    abmRemarks: apiRequest.abmRemarks,
-    abmContactNumber: apiRequest.ContactNumber,
-    escalatedAt: escalatedDateTime.date,
-    escalatedAtTime: escalatedDateTime.time,
-    skuName: apiRequest.skuName,
-    skuId: apiRequest.skuId,
-    orderMode: apiRequest.orderMode,
-    abmStatus: apiRequest.abmStatus
+    eligibilityReason: apiRequest.eligibilityReason
   };
 };
 
@@ -167,14 +118,15 @@ export function RequestsList({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  
+  const [priorityFilter, setPriorityFilter] = useState("all");
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchRequests = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5678/webhook-test/admin-fetch-requests', {
+        const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/admin-fetch-requests', {
+          //'http://localhost:5678/webhook-test/admin-fetch-requests', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -241,56 +193,24 @@ export function RequestsList({
     fetchRequests();
   }, [toast]);
 
-  const calculateTAT = (createdAt: string, acceptedAt: string) => {
-    const created = new Date(createdAt);
-    const accepted = new Date(acceptedAt);
-    const diffMs = accepted.getTime() - created.getTime();
-    
-    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${days} days, ${hours} hours, ${minutes} minutes`;
-  };
-
   const handleApprove = (requestId: string) => {
-    const acceptedAt = new Date().toISOString();
     setRequests(prev => 
-      prev.map(req => {
-        if (req.id === requestId) {
-          const tat = calculateTAT(req.createdAt, acceptedAt);
-          return { 
-            ...req, 
-            status: "accepted" as const,
-            acceptedAt,
-            tat
-          };
-        }
-        return req;
-      })
+      prev.map(req => 
+        req.id === requestId ? { ...req, status: "approved" as const } : req
+      )
     );
     toast({
-      title: "Request Accepted",
-      description: `Request ${requestId} has been accepted successfully.`,
+      title: "Request Approved",
+      description: `Request ${requestId} has been approved successfully.`,
       variant: "default"
     });
   };
 
   const handleReject = (requestId: string) => {
-    const rejectedAt = new Date().toISOString();
     setRequests(prev => 
-      prev.map(req => {
-        if (req.id === requestId) {
-          const tat = calculateTAT(req.createdAt, rejectedAt);
-          return { 
-            ...req, 
-            status: "rejected" as const,
-            acceptedAt: rejectedAt, // Use same field for consistency
-            tat
-          };
-        }
-        return req;
-      })
+      prev.map(req => 
+        req.id === requestId ? { ...req, status: "rejected" as const } : req
+      )
     );
     toast({
       title: "Request Rejected",
@@ -305,8 +225,9 @@ export function RequestsList({
                           req.requester.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           req.department.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || req.status === statusFilter;
+      const matchesPriority = priorityFilter === "all" || req.priority === priorityFilter;
       
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesPriority;
     })
     .slice(0, limit);
 
@@ -314,7 +235,6 @@ export function RequestsList({
     switch (status) {
       case "pending": return "bg-warning text-warning-foreground";
       case "approved": return "bg-success text-success-foreground";
-      case "accepted": return "bg-success text-success-foreground";
       case "rejected": return "bg-destructive text-destructive-foreground";
       case "escalated": return "bg-accent text-accent-foreground";
       default: return "bg-muted text-muted-foreground";
@@ -356,9 +276,20 @@ export function RequestsList({
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="escalated">Escalated</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priority</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -387,191 +318,61 @@ export function RequestsList({
           <div className="space-y-4">
             {filteredRequests.map((request) => (
             <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
-              {/* Header with checkbox, ID and eligible badge */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <input type="checkbox" className="w-4 h-4 rounded border border-border" />
-                  <span className="text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  {request.eligible === 1 ? (
-                    <Badge className="bg-foreground text-background px-3 py-1 text-sm font-medium">
-                      Eligible
-                    </Badge>
-                  ) : (
-                    <>
-                      <Badge className="bg-destructive text-destructive-foreground px-3 py-1 text-sm font-medium">
-                        Not Eligible
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-2 flex-1">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                    <h4 className="font-semibold text-foreground">{request.title}</h4>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getStatusColor(request.status)}>
+                        {request.status}
                       </Badge>
-                      <span className="text-muted-foreground text-sm text-right max-w-xs">
-                        {request.eligibilityReason}
-                      </span>
-                    </>
-                  )}
+                      <Badge className={getPriorityColor(request.priority)}>
+                        {request.priority}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium">ID:</span> {request.id} • 
+                    <span className="font-medium"> Requester:</span> {request.requester} • 
+                    <span className="font-medium"> Department:</span> {request.department} • 
+                    <span className="font-medium"> Date:</span> {request.createdAt}
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground">{request.description}</p>
                 </div>
-              </div>
-
-              {/* ABM Status - Clean and prominent display */}
-              {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && (
-                <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
+                
+                {showActions && request.status === "pending" && (
                   <div className="flex items-center gap-2">
-                    <div className="text-xs uppercase tracking-wide font-medium text-muted-foreground">ABM Decision</div>
-                    <div className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wide ${
-                      request.abmStatus === "ACCEPTED" 
-                        ? "bg-success/20 text-success-foreground border border-success/30" 
-                        : "bg-warning/20 text-warning-foreground border border-warning/30"
-                    }`}>
-                      {request.abmStatus}
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Eye size={16} className="mr-1" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleApprove(request.id)}
+                      className="text-success hover:bg-success hover:text-success-foreground"
+                    >
+                      <Check size={16} className="mr-1" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleReject(request.id)}
+                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <X size={16} className="mr-1" />
+                      Reject
+                    </Button>
                   </div>
-                </div>
-              )}
-
-              {/* Customer Section */}
-              <div className="mb-3">
-                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Customer</div>
-                <div className="text-foreground font-semibold text-lg">
-                  {request.requester} ({request.customerId})
-                </div>
-                <div className="text-muted-foreground text-sm">{request.contactNumber}</div>
+                )}
               </div>
-
-              {/* Campaign and Order Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Campaign</div>
-                  <div className="text-foreground">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
-                  {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && (
-                    <div className="text-muted-foreground text-sm mt-1">
-                      SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Order</div>
-                  <div className="text-foreground">{request.orderQty} kg</div>
-                  <div className="text-muted-foreground text-sm">
-                    {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Discount Section */}
-              <div className="mb-3">
-                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Discount</div>
-                <div className="text-foreground">
-                  {request.discountValue > 0 
-                    ? `₹${request.discountValue} (${request.discountType})` 
-                    : 'No discount specified'}
-                </div>
-              </div>
-
-              {/* Requested By and Date Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Requested By</div>
-                  <div className="text-foreground">{request.department.replace('Requested by: ', '')} (ID: {request.requestedBy})</div>
-                  <div className="text-muted-foreground text-sm">{request.requestedByContact}</div>
-                  
-                  {/* Escalated By Section - Show for escalated, accepted, and rejected requests */}
-                   {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? (
-                    <div className="mt-3">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Escalated By</div>
-                      <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
-                      <div className="text-muted-foreground text-sm">{request.abmContactNumber}</div>
-                      {request.abmRemarks && request.abmRemarks.trim() !== "" && (
-                        <div className="text-muted-foreground text-sm mt-1">
-                          Remarks: {request.abmRemarks}
-                        </div>
-                      )}
-                    </div>
-                   ) : null}
-                </div>
-                <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Requested At</div>
-                  <div className="text-foreground">{request.requestedDate}</div>
-                  <div className="text-muted-foreground text-sm">{request.requestedTime}</div>
-                  
-                  {/* Escalated At Section - Show for escalated, accepted, and rejected requests */}
-                  {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected") && (
-                    <div className="mt-3">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Escalated At</div>
-                      <div className="text-foreground">{request.escalatedAt}</div>
-                      <div className="text-muted-foreground text-sm">{request.escalatedAtTime}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              {showActions && (request.status === "pending" || request.status === "escalated") && (
-                <div className="flex items-center gap-3 pt-4 border-t border-border">
-                  <Button
-                    onClick={() => handleApprove(request.id)}
-                    className="bg-foreground text-background hover:bg-foreground/90 px-6"
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleReject(request.id)}
-                    className="px-6"
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="px-6"
-                  >
-                    Modify
-                  </Button>
-                </div>
-              )}
-
-              {/* Status badge for approved/rejected/accepted requests */}
-              {request.status === "accepted" && (
-                <div className="pt-4 border-t border-border">
-                  <div className="text-foreground font-semibold">
-                    ACCEPTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
-                      year: 'numeric',
-                      month: '2-digit', 
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
-                  </div>
-                  <div className="text-muted-foreground text-sm">
-                    TAT: {request.tat}
-                  </div>
-                </div>
-              )}
-              {request.status === "rejected" && (
-                <div className="pt-4 border-t border-border">
-                  <div className="text-foreground font-semibold">
-                    REJECTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
-                      year: 'numeric',
-                      month: '2-digit', 
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
-                  </div>
-                  <div className="text-muted-foreground text-sm">
-                    TAT: {request.tat}
-                  </div>
-                </div>
-              )}
-              {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && request.status !== "rejected" && (
-                <div className="pt-4 border-t border-border">
-                  <Badge className={getStatusColor(request.status)}>
-                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                  </Badge>
-                </div>
-              )}
             </div>
           ))}
           
