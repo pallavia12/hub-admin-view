@@ -387,24 +387,24 @@ export function RequestsList({
         ) : (
           <div className="space-y-4">
             {filteredRequests.map((request) => (
-            <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
+            <div key={request.id} className="border border-border rounded-lg p-2 sm:p-3 lg:p-4 transition-colors hover:bg-accent/50">
               {/* Header with checkbox, ID and eligible badge */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <input type="checkbox" className="w-4 h-4 rounded border border-border" />
-                  <span className="text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
+              <div className="flex items-start sm:items-center justify-between mb-3 gap-2">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <input type="checkbox" className="w-4 h-4 rounded border border-border flex-shrink-0 mt-0.5 sm:mt-0" />
+                  <span className="text-base sm:text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-col items-end gap-1 sm:gap-2 flex-shrink-0">
                   {request.eligible === 1 ? (
-                    <Badge className="bg-foreground text-background px-3 py-1 text-sm font-medium">
+                    <Badge className="bg-foreground text-background px-2 py-0.5 text-xs font-medium">
                       Eligible
                     </Badge>
                   ) : (
                     <>
-                      <Badge className="bg-destructive text-destructive-foreground px-3 py-1 text-sm font-medium">
+                      <Badge className="bg-destructive text-destructive-foreground px-2 py-0.5 text-xs font-medium">
                         Not Eligible
                       </Badge>
-                      <span className="text-muted-foreground text-sm text-right max-w-xs">
+                      <span className="text-muted-foreground text-xs text-right max-w-[120px] sm:max-w-xs leading-tight">
                         {request.eligibilityReason}
                       </span>
                     </>
@@ -414,12 +414,12 @@ export function RequestsList({
 
               {/* ABM Status - Clean and prominent display */}
               {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && (
-                <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
+                <div className="mb-3 p-2 sm:p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
                   <div className="flex items-center gap-2">
                     <div className="text-xs uppercase tracking-wide font-medium text-muted-foreground">ABM Decision</div>
                     <div className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wide ${
                       request.abmStatus === "ACCEPTED" 
-                        ? "bg-success/20 text-success-foreground border border-success/30" 
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border border-green-300 dark:border-green-700" 
                         : "bg-warning/20 text-warning-foreground border border-warning/30"
                     }`}>
                       {request.abmStatus}
@@ -429,38 +429,38 @@ export function RequestsList({
               )}
 
               {/* Customer Section */}
-              <div className="mb-3">
-                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Customer</div>
-                <div className="text-foreground font-semibold text-lg">
+              <div className="mb-2 sm:mb-3">
+                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Customer</div>
+                <div className="text-foreground font-semibold text-base sm:text-lg">
                   {request.requester} ({request.customerId})
                 </div>
                 <div className="text-muted-foreground text-sm">{request.contactNumber}</div>
               </div>
 
               {/* Campaign and Order Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2 sm:mb-3">
                 <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Campaign</div>
-                  <div className="text-foreground">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Campaign</div>
+                  <div className="text-foreground text-sm sm:text-base">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
                   {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && (
-                    <div className="text-muted-foreground text-sm mt-1">
+                    <div className="text-muted-foreground text-xs sm:text-sm mt-1">
                       SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
                     </div>
                   )}
                 </div>
                 <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Order</div>
-                  <div className="text-foreground">{request.orderQty} kg</div>
-                  <div className="text-muted-foreground text-sm">
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Order</div>
+                  <div className="text-foreground text-sm sm:text-base">{request.orderQty} kg</div>
+                  <div className="text-muted-foreground text-xs sm:text-sm">
                     {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
                   </div>
                 </div>
               </div>
 
               {/* Discount Section */}
-              <div className="mb-3">
-                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Discount</div>
-                <div className="text-foreground">
+              <div className="mb-2 sm:mb-3">
+                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Discount</div>
+                <div className="text-foreground text-sm sm:text-base">
                   {request.discountValue > 0 
                     ? `₹${request.discountValue} (${request.discountType})` 
                     : 'No discount specified'}
@@ -468,20 +468,20 @@ export function RequestsList({
               </div>
 
               {/* Requested By and Date Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2 sm:mb-3">
                 <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Requested By</div>
-                  <div className="text-foreground">{request.department.replace('Requested by: ', '')} (ID: {request.requestedBy})</div>
-                  <div className="text-muted-foreground text-sm">{request.requestedByContact}</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Requested By</div>
+                  <div className="text-foreground text-sm sm:text-base">{request.department.replace('Requested by: ', '')} (ID: {request.requestedBy})</div>
+                  <div className="text-muted-foreground text-xs sm:text-sm">{request.requestedByContact}</div>
                   
                   {/* Escalated By Section - Show for escalated, accepted, and rejected requests */}
                    {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? (
-                    <div className="mt-3">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Escalated By</div>
-                      <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
-                      <div className="text-muted-foreground text-sm">{request.abmContactNumber}</div>
+                    <div className="mt-2 sm:mt-3">
+                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Escalated By</div>
+                      <div className="text-foreground text-sm sm:text-base">{request.abmUserName} (ID: {request.abmId})</div>
+                      <div className="text-muted-foreground text-xs sm:text-sm">{request.abmContactNumber}</div>
                       {request.abmRemarks && request.abmRemarks.trim() !== "" && (
-                        <div className="text-muted-foreground text-sm mt-1">
+                        <div className="text-muted-foreground text-xs sm:text-sm mt-1">
                           Remarks: {request.abmRemarks}
                         </div>
                       )}
@@ -489,16 +489,16 @@ export function RequestsList({
                    ) : null}
                 </div>
                 <div>
-                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Requested At</div>
-                  <div className="text-foreground">{request.requestedDate}</div>
-                  <div className="text-muted-foreground text-sm">{request.requestedTime}</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Requested At</div>
+                  <div className="text-foreground text-sm sm:text-base">{request.requestedDate}</div>
+                  <div className="text-muted-foreground text-xs sm:text-sm">{request.requestedTime}</div>
                   
                   {/* Escalated At Section - Show for escalated, accepted, and rejected requests */}
                   {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected") && (
-                    <div className="mt-3">
-                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Escalated At</div>
-                      <div className="text-foreground">{request.escalatedAt}</div>
-                      <div className="text-muted-foreground text-sm">{request.escalatedAtTime}</div>
+                    <div className="mt-2 sm:mt-3">
+                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Escalated At</div>
+                      <div className="text-foreground text-sm sm:text-base">{request.escalatedAt}</div>
+                      <div className="text-muted-foreground text-xs sm:text-sm">{request.escalatedAtTime}</div>
                     </div>
                   )}
                 </div>
@@ -506,17 +506,17 @@ export function RequestsList({
 
               {/* Action Buttons */}
               {showActions && (request.status === "pending" || request.status === "escalated") && (
-                <div className="flex items-center gap-3 pt-4 border-t border-border">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border">
                   <Button
                     onClick={() => handleApprove(request.id)}
-                    className="bg-foreground text-background hover:bg-foreground/90 px-6"
+                    className="bg-foreground text-background hover:bg-foreground/90 px-4 sm:px-6 text-sm sm:text-base"
                   >
                     Accept
                   </Button>
                   <Button
                     variant="destructive"
                     onClick={() => handleReject(request.id)}
-                    className="px-6"
+                    className="px-4 sm:px-6 text-sm sm:text-base"
                   >
                     Reject
                   </Button>

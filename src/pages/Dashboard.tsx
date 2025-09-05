@@ -13,11 +13,11 @@ const Dashboard = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="space-y-8">
+    <div className="min-h-screen bg-background p-2 sm:p-4 lg:p-8">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">Approval Requests</h2>
-          <p className="text-muted-foreground mt-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Approval Requests</h2>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
             Manage and review all approval requests
           </p>
         </div>
