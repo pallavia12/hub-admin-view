@@ -70,6 +70,7 @@ interface Request {
   orderMode: number | null;
   acceptedAt?: string;
   tat?: string;
+  abmStatus: string;
 }
 
 interface ApiResponse {
@@ -152,7 +153,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     escalatedAtTime: escalatedDateTime.time,
     skuName: apiRequest.skuName,
     skuId: apiRequest.skuId,
-    orderMode: apiRequest.orderMode
+    orderMode: apiRequest.orderMode,
+    abmStatus: apiRequest.abmStatus
   };
 };
 
@@ -385,11 +387,17 @@ export function RequestsList({
           <div className="space-y-4">
             {filteredRequests.map((request) => (
             <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
-              {/* Header with checkbox, ID and eligible badge */}
+              {/* Header with checkbox, ID, abmStatus and eligible badge */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <input type="checkbox" className="w-4 h-4 rounded border border-border" />
                   <span className="text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
+                  {/* ABM Status - Prominent display */}
+                  {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && (
+                    <div className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm uppercase tracking-wider shadow-lg">
+                      {request.abmStatus}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   {request.eligible === 1 ? (
@@ -474,8 +482,8 @@ export function RequestsList({
                   <div className="text-foreground">{request.requestedDate}</div>
                   <div className="text-muted-foreground text-sm">{request.requestedTime}</div>
                   
-                  {/* Escalated At Section - Show only for escalated requests */}
-                  {request.status === "escalated" && (
+                  {/* Escalated At Section - Show for escalated, accepted, and rejected requests */}
+                  {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected") && (
                     <div className="mt-3">
                       <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Escalated At</div>
                       <div className="text-foreground">{request.escalatedAt}</div>
