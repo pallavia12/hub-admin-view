@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Check, X, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
 interface ApiRequest {
   requestId: number;
   customerName: string;
@@ -37,7 +36,6 @@ interface ApiRequest {
   abmDiscountType: string | null;
   abmRemarks: string;
 }
-
 interface Request {
   id: string;
   title: string;
@@ -72,7 +70,6 @@ interface Request {
   tat?: string;
   abmStatus: string;
 }
-
 interface ApiResponse {
   success: boolean;
   code: string | null;
@@ -81,17 +78,14 @@ interface ApiResponse {
   requestId: string;
   data: ApiRequest[];
 }
-
 interface RequestsListProps {
   showActions?: boolean;
   limit?: number;
 }
-
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
-
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return {
@@ -99,30 +93,30 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
       time: date.toLocaleTimeString()
     };
   };
-
   const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" | "accepted" => {
     switch (abmStatus.toLowerCase()) {
-      case "approved": return "approved";
-      case "rejected": return "rejected";
-      case "escalated": return "escalated";
-      case "accepted": return "accepted";
-      default: return "pending";
+      case "approved":
+        return "approved";
+      case "rejected":
+        return "rejected";
+      case "escalated":
+        return "escalated";
+      case "accepted":
+        return "accepted";
+      default:
+        return "pending";
     }
   };
-
   const getPriority = (eligible: number, discountValue: number | null): "low" | "medium" | "high" => {
     if (!eligible) return "high";
     if (discountValue && discountValue > 100) return "high";
     if (discountValue && discountValue > 50) return "medium";
     return "low";
   };
-
   const safeDiscountValue = apiRequest.discountValue ?? 0;
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
-
   const dateTime = formatDateTime(apiRequest.createdAt);
   const escalatedDateTime = formatDateTime(apiRequest.abmReviewedAt);
-
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
@@ -157,9 +151,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     abmStatus: apiRequest.abmStatus
   };
 };
-
-export function RequestsList({ 
-  showActions = true, 
+export function RequestsList({
+  showActions = true,
   limit
 }: RequestsListProps) {
   const [requests, setRequests] = useState<Request[]>([]);
@@ -167,9 +160,9 @@ export function RequestsList({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -178,17 +171,15 @@ export function RequestsList({
           //'http://localhost:5678/webhook-test/admin-fetch-requests', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-          },
+            'Content-Type': 'application/json'
+          }
         });
-        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
         const rawData = await response.json();
         console.log('Raw API response:', rawData);
-        
+
         // Handle the actual response format: array containing object with success/data structure
         let apiResponse: ApiResponse;
         if (Array.isArray(rawData) && rawData.length > 0) {
@@ -212,9 +203,8 @@ export function RequestsList({
         } else {
           throw new Error('Invalid response format');
         }
-        
         console.log('Parsed API response:', apiResponse);
-        
+
         // Ensure we have data and it's an array
         if (apiResponse.success && apiResponse.data && Array.isArray(apiResponse.data)) {
           console.log('Processing data:', apiResponse.data);
@@ -238,115 +228,100 @@ export function RequestsList({
         setLoading(false);
       }
     };
-
     fetchRequests();
   }, [toast]);
-
   const calculateTAT = (createdAt: string, acceptedAt: string) => {
     const created = new Date(createdAt);
     const accepted = new Date(acceptedAt);
     const diffMs = accepted.getTime() - created.getTime();
-    
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+    const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
+    const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
     return `${days} days, ${hours} hours, ${minutes} minutes`;
   };
-
   const handleApprove = (requestId: string) => {
     const acceptedAt = new Date().toISOString();
-    setRequests(prev => 
-      prev.map(req => {
-        if (req.id === requestId) {
-          const tat = calculateTAT(req.createdAt, acceptedAt);
-          return { 
-            ...req, 
-            status: "accepted" as const,
-            acceptedAt,
-            tat
-          };
-        }
-        return req;
-      })
-    );
+    setRequests(prev => prev.map(req => {
+      if (req.id === requestId) {
+        const tat = calculateTAT(req.createdAt, acceptedAt);
+        return {
+          ...req,
+          status: "accepted" as const,
+          acceptedAt,
+          tat
+        };
+      }
+      return req;
+    }));
     toast({
       title: "Request Accepted",
       description: `Request ${requestId} has been accepted successfully.`,
       variant: "default"
     });
   };
-
   const handleReject = (requestId: string) => {
     const rejectedAt = new Date().toISOString();
-    setRequests(prev => 
-      prev.map(req => {
-        if (req.id === requestId) {
-          const tat = calculateTAT(req.createdAt, rejectedAt);
-          return { 
-            ...req, 
-            status: "rejected" as const,
-            acceptedAt: rejectedAt, // Use same field for consistency
-            tat
-          };
-        }
-        return req;
-      })
-    );
+    setRequests(prev => prev.map(req => {
+      if (req.id === requestId) {
+        const tat = calculateTAT(req.createdAt, rejectedAt);
+        return {
+          ...req,
+          status: "rejected" as const,
+          acceptedAt: rejectedAt,
+          // Use same field for consistency
+          tat
+        };
+      }
+      return req;
+    }));
     toast({
       title: "Request Rejected",
       description: `Request ${requestId} has been rejected.`,
       variant: "destructive"
     });
   };
-
-  const filteredRequests = requests
-    .filter(req => {
-      const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          req.requester.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          req.department.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || req.status === statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    })
-    .slice(0, limit);
-
+  const filteredRequests = requests.filter(req => {
+    const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.requester.toLowerCase().includes(searchTerm.toLowerCase()) || req.department.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || req.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }).slice(0, limit);
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "bg-warning text-warning-foreground";
-      case "approved": return "bg-success text-success-foreground";
-      case "accepted": return "bg-success text-success-foreground";
-      case "rejected": return "bg-destructive text-destructive-foreground";
-      case "escalated": return "bg-accent text-accent-foreground";
-      default: return "bg-muted text-muted-foreground";
+      case "pending":
+        return "bg-warning text-warning-foreground";
+      case "approved":
+        return "bg-success text-success-foreground";
+      case "accepted":
+        return "bg-success text-success-foreground";
+      case "rejected":
+        return "bg-destructive text-destructive-foreground";
+      case "escalated":
+        return "bg-accent text-accent-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case "high": return "bg-destructive text-destructive-foreground";
-      case "medium": return "bg-warning text-warning-foreground";
-      case "low": return "bg-success text-success-foreground";
-      default: return "bg-muted text-muted-foreground";
+      case "high":
+        return "bg-destructive text-destructive-foreground";
+      case "medium":
+        return "bg-warning text-warning-foreground";
+      case "low":
+        return "bg-success text-success-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
-
-  return (
-    <Card>
+  return <Card>
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Approval Requests</CardTitle>
           
-          {showActions && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {showActions && <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search requests..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
+                <Input placeholder="Search requests..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-64" />
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -362,32 +337,21 @@ export function RequestsList({
                   <SelectItem value="escalated">Escalated</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          )}
+            </div>}
         </div>
       </CardHeader>
       
       <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
+        {loading ? <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Loading requests...</span>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
+          </div> : error ? <div className="text-center py-8">
             <p className="text-destructive">{error}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.reload()} 
-              className="mt-4"
-            >
+            <Button variant="outline" onClick={() => window.location.reload()} className="mt-4">
               Retry
             </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredRequests.map((request) => (
-            <div key={request.id} className="border border-border rounded-lg p-2 sm:p-3 lg:p-4 transition-colors hover:bg-accent/50">
+          </div> : <div className="space-y-4">
+            {filteredRequests.map(request => <div key={request.id} className="border border-border rounded-lg p-2 sm:p-3 lg:p-4 transition-colors hover:bg-accent/50 px-[6px] py-[6px]">
               {/* Header with checkbox, ID and eligible badge */}
               <div className="flex items-start sm:items-center justify-between mb-3 gap-2">
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -395,38 +359,28 @@ export function RequestsList({
                   <span className="text-base sm:text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
                 </div>
                 <div className="flex flex-col items-end gap-1 sm:gap-2 flex-shrink-0">
-                  {request.eligible === 1 ? (
-                    <Badge className="bg-foreground text-background px-2 py-0.5 text-xs font-medium">
+                  {request.eligible === 1 ? <Badge className="bg-foreground text-background px-2 py-0.5 text-xs font-medium">
                       Eligible
-                    </Badge>
-                  ) : (
-                    <>
+                    </Badge> : <>
                       <Badge className="bg-destructive text-destructive-foreground px-2 py-0.5 text-xs font-medium">
                         Not Eligible
                       </Badge>
                       <span className="text-muted-foreground text-xs text-right max-w-[120px] sm:max-w-xs leading-tight">
                         {request.eligibilityReason}
                       </span>
-                    </>
-                  )}
+                    </>}
                 </div>
               </div>
 
               {/* ABM Status - Clean and prominent display */}
-              {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && (
-                <div className="mb-3 p-2 sm:p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
+              {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && <div className="mb-3 p-2 sm:p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
                   <div className="flex items-center gap-2">
                     <div className="text-xs uppercase tracking-wide font-medium text-muted-foreground">ABM Decision</div>
-                    <div className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wide ${
-                      request.abmStatus === "ACCEPTED" 
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border border-green-300 dark:border-green-700" 
-                        : "bg-warning/20 text-warning-foreground border border-warning/30"
-                    }`}>
+                    <div className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wide ${request.abmStatus === "ACCEPTED" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border border-green-300 dark:border-green-700" : "bg-warning/20 text-warning-foreground border border-warning/30"}`}>
                       {request.abmStatus}
                     </div>
                   </div>
-                </div>
-              )}
+                </div>}
 
               {/* Customer Section */}
               <div className="mb-2 sm:mb-3">
@@ -442,11 +396,9 @@ export function RequestsList({
                 <div>
                   <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Campaign</div>
                   <div className="text-foreground text-sm sm:text-base">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
-                  {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && (
-                    <div className="text-muted-foreground text-xs sm:text-sm mt-1">
+                  {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && <div className="text-muted-foreground text-xs sm:text-sm mt-1">
                       SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
-                    </div>
-                  )}
+                    </div>}
                 </div>
                 <div>
                   <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Order</div>
@@ -461,9 +413,7 @@ export function RequestsList({
               <div className="mb-2 sm:mb-3">
                 <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Discount</div>
                 <div className="text-foreground text-sm sm:text-base">
-                  {request.discountValue > 0 
-                    ? `₹${request.discountValue} (${request.discountType})` 
-                    : 'No discount specified'}
+                  {request.discountValue > 0 ? `₹${request.discountValue} (${request.discountType})` : 'No discount specified'}
                 </div>
               </div>
 
@@ -475,18 +425,14 @@ export function RequestsList({
                   <div className="text-muted-foreground text-xs sm:text-sm">{request.requestedByContact}</div>
                   
                   {/* Escalated By Section - Show for escalated, accepted, and rejected requests */}
-                   {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? (
-                    <div className="mt-2 sm:mt-3">
+                   {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? <div className="mt-2 sm:mt-3">
                       <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Escalated By</div>
                       <div className="text-foreground text-sm sm:text-base">{request.abmUserName} (ID: {request.abmId})</div>
                       <div className="text-muted-foreground text-xs sm:text-sm">{request.abmContactNumber}</div>
-                      {request.abmRemarks && request.abmRemarks.trim() !== "" && (
-                        <div className="text-muted-foreground text-xs sm:text-sm mt-1">
+                      {request.abmRemarks && request.abmRemarks.trim() !== "" && <div className="text-muted-foreground text-xs sm:text-sm mt-1">
                           Remarks: {request.abmRemarks}
-                        </div>
-                      )}
-                    </div>
-                   ) : null}
+                        </div>}
+                    </div> : null}
                 </div>
                 <div>
                   <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Requested At</div>
@@ -494,96 +440,71 @@ export function RequestsList({
                   <div className="text-muted-foreground text-xs sm:text-sm">{request.requestedTime}</div>
                   
                   {/* Escalated At Section - Show for escalated, accepted, and rejected requests */}
-                  {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected") && (
-                    <div className="mt-2 sm:mt-3">
+                  {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected") && <div className="mt-2 sm:mt-3">
                       <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Escalated At</div>
                       <div className="text-foreground text-sm sm:text-base">{request.escalatedAt}</div>
                       <div className="text-muted-foreground text-xs sm:text-sm">{request.escalatedAtTime}</div>
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              {showActions && (request.status === "pending" || request.status === "escalated") && (
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border">
-                  <Button
-                    onClick={() => handleApprove(request.id)}
-                    className="bg-foreground text-background hover:bg-foreground/90 px-4 sm:px-6 text-sm sm:text-base"
-                  >
+              {showActions && (request.status === "pending" || request.status === "escalated") && <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border">
+                  <Button onClick={() => handleApprove(request.id)} className="bg-foreground text-background hover:bg-foreground/90 px-4 sm:px-6 text-sm sm:text-base">
                     Accept
                   </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleReject(request.id)}
-                    className="px-4 sm:px-6 text-sm sm:text-base"
-                  >
+                  <Button variant="destructive" onClick={() => handleReject(request.id)} className="px-4 sm:px-6 text-sm sm:text-base">
                     Reject
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="px-6"
-                  >
+                  <Button variant="outline" className="px-6">
                     Modify
                   </Button>
-                </div>
-              )}
+                </div>}
 
               {/* Status badge for approved/rejected/accepted requests */}
-              {request.status === "accepted" && (
-                <div className="pt-4 border-t border-border">
+              {request.status === "accepted" && <div className="pt-4 border-t border-border">
                   <div className="text-foreground font-semibold">
                     ACCEPTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
-                      year: 'numeric',
-                      month: '2-digit', 
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
                   </div>
                   <div className="text-muted-foreground text-sm">
                     TAT: {request.tat}
                   </div>
-                </div>
-              )}
-              {request.status === "rejected" && (
-                <div className="pt-4 border-t border-border">
+                </div>}
+              {request.status === "rejected" && <div className="pt-4 border-t border-border">
                   <div className="text-foreground font-semibold">
                     REJECTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
-                      year: 'numeric',
-                      month: '2-digit', 
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
                   </div>
                   <div className="text-muted-foreground text-sm">
                     TAT: {request.tat}
                   </div>
-                </div>
-              )}
-              {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && request.status !== "rejected" && (
-                <div className="pt-4 border-t border-border">
+                </div>}
+              {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && request.status !== "rejected" && <div className="pt-4 border-t border-border">
                   <Badge className={getStatusColor(request.status)}>
                     {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                   </Badge>
-                </div>
-              )}
-            </div>
-          ))}
+                </div>}
+            </div>)}
           
-            {filteredRequests.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
+            {filteredRequests.length === 0 && <div className="text-center py-8 text-muted-foreground">
                 No requests found matching your criteria.
-              </div>
-            )}
-          </div>
-        )}
+              </div>}
+          </div>}
       </CardContent>
-    </Card>
-  );
+    </Card>;
 }
