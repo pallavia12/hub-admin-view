@@ -55,6 +55,7 @@ interface Request {
   customerId: number;
   contactNumber: string;
   requestedByContact: string;
+  requestedBy: number;
   discountType: string;
   requestedDate: string;
   requestedTime: string;
@@ -135,6 +136,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     customerId: apiRequest.customerId,
     contactNumber: apiRequest.ContactNumber,
     requestedByContact: apiRequest.requestedByContact,
+    requestedBy: apiRequest.requestedBy,
     discountType: apiRequest.discountType,
     requestedDate: dateTime.date,
     requestedTime: dateTime.time,
@@ -414,37 +416,37 @@ export function RequestsList({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Requested By</div>
-                  <div className="text-foreground">{request.department.replace('Requested by: ', '')}</div>
+                  <div className="text-foreground">{request.department.replace('Requested by: ', '')} (ID: {request.requestedBy})</div>
                   <div className="text-muted-foreground text-sm">{request.requestedByContact}</div>
+                  
+                  {/* Escalated By Section - Show only for escalated requests */}
+                  {request.status === "escalated" && (
+                    <div className="mt-4">
+                      <div className="text-muted-foreground text-sm mb-1">Escalated By</div>
+                      <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
+                      <div className="text-muted-foreground text-sm">{request.abmContactNumber}</div>
+                      {request.abmRemarks && request.abmRemarks.trim() !== "" && (
+                        <div className="text-muted-foreground text-sm mt-1">
+                          Remarks: {request.abmRemarks}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-muted-foreground text-sm mb-1">Requested Date</div>
                   <div className="text-foreground">{request.requestedDate}</div>
                   <div className="text-muted-foreground text-sm">{request.requestedTime}</div>
-                </div>
-              </div>
-
-              {/* Escalated At Section - Show only for escalated requests */}
-              {request.status === "escalated" && (
-                <div className="mb-6">
-                  <div className="text-muted-foreground text-sm mb-1">Escalated At</div>
-                  <div className="text-foreground">{request.escalatedAt}</div>
-                </div>
-              )}
-
-              {/* Escalated By Section - Show only for escalated requests */}
-              {request.status === "escalated" && (
-                <div className="mb-6">
-                  <div className="text-muted-foreground text-sm mb-1">Escalated By</div>
-                  <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
-                  <div className="text-muted-foreground text-sm">ABM Contact Number: {request.abmContactNumber}</div>
-                  {request.abmRemarks && request.abmRemarks.trim() !== "" && (
-                    <div className="text-muted-foreground text-sm mt-1">
-                      Remarks: {request.abmRemarks}
+                  
+                  {/* Escalated At Section - Show only for escalated requests */}
+                  {request.status === "escalated" && (
+                    <div className="mt-4">
+                      <div className="text-muted-foreground text-sm mb-1">Escalated At</div>
+                      <div className="text-foreground">{request.escalatedAt}</div>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
 
               {/* Action Buttons */}
               {showActions && (request.status === "pending" || request.status === "escalated") && (
