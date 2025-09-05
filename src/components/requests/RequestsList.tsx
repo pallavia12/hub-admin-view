@@ -151,7 +151,7 @@ export function RequestsList({
         
         console.log('Parsed API response:', apiResponse);
         
-        if (apiResponse.success && apiResponse.data && Array.isArray(apiResponse.data)) {
+        if (apiResponse.data && Array.isArray(apiResponse.data)) {
           console.log('Processing data:', apiResponse.data);
           const transformedRequests = apiResponse.data.map(transformApiRequest);
           console.log('Transformed requests:', transformedRequests);
