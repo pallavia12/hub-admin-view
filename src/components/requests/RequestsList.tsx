@@ -541,7 +541,7 @@ export function RequestsList({
               <div className="mb-4">
                 <div className="text-gray-500 text-sm font-medium mb-1">Discount</div>
                 <div className="text-foreground text-base font-medium">
-                  {request.discountValue > 0 ? `${request.discountValue} (Re ${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
+                  {request.discountValue > 0 ? `${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
                 </div>
               </div>
 
