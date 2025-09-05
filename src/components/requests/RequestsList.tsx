@@ -14,9 +14,9 @@ interface ApiRequest {
   abmStatus: string;
   campaignType: string;
   discountType: string;
-  discountValue: number;
+  discountValue: number | null;
   orderQty: number;
-  skuName: string;
+  skuName: string | null;
   createdAt: string;
   abmReviewedAt: string;
   customerContact: number;
@@ -25,10 +25,10 @@ interface ApiRequest {
   eligibilityReason: string;
   customerId: number;
   ContactNumber: string;
-  skuId: number;
+  skuId: number | null;
   ABM_UserName: string;
   requestedBy: number;
-  orderMode: number;
+  orderMode: number | null;
   CustomerTypeId: number;
   abmDiscountValue: number | null;
   ABM_Id: number;
@@ -82,24 +82,27 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     }
   };
 
-  const getPriority = (eligible: number, discountValue: number): "low" | "medium" | "high" => {
+  const getPriority = (eligible: number, discountValue: number | null): "low" | "medium" | "high" => {
     if (!eligible) return "high";
-    if (discountValue > 100) return "high";
-    if (discountValue > 50) return "medium";
+    if (discountValue && discountValue > 100) return "high";
+    if (discountValue && discountValue > 50) return "medium";
     return "low";
   };
 
+  const safeDiscountValue = apiRequest.discountValue ?? 0;
+  const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
+
   return {
     id: `REQ-${apiRequest.requestId}`,
-    title: `${apiRequest.campaignType} - ${apiRequest.skuName}`,
+    title: `${apiRequest.campaignType} - ${safeSkuName}`,
     requester: apiRequest.customerName,
     department: `Requested by: ${apiRequest.requestedByUserName}`,
     status: getStatus(apiRequest.abmStatus),
     priority: getPriority(apiRequest.eligible, apiRequest.discountValue),
     createdAt: formatDate(apiRequest.createdAt),
-    description: `${apiRequest.discountType}: ₹${apiRequest.discountValue} | Order Qty: ${apiRequest.orderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
+    description: `${apiRequest.discountType}: ${apiRequest.discountValue ? `₹${apiRequest.discountValue}` : 'No discount'} | Order Qty: ${apiRequest.orderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
     campaignType: apiRequest.campaignType,
-    discountValue: apiRequest.discountValue,
+    discountValue: safeDiscountValue,
     orderQty: apiRequest.orderQty,
     eligible: apiRequest.eligible,
     eligibilityReason: apiRequest.eligibilityReason
@@ -133,20 +136,36 @@ export function RequestsList({
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const data: ApiResponse = await response.json();
+        const rawData = await response.json();
+        console.log('Raw API response:', rawData);
         
-        if (data.success && data.data) {
-          const transformedRequests = data.data.map(transformApiRequest);
+        // Handle array response format
+        let apiResponse: ApiResponse;
+        if (Array.isArray(rawData) && rawData.length > 0) {
+          apiResponse = rawData[0];
+        } else if (rawData && typeof rawData === 'object' && 'success' in rawData) {
+          apiResponse = rawData;
+        } else {
+          throw new Error('Invalid response format');
+        }
+        
+        console.log('Parsed API response:', apiResponse);
+        
+        if (apiResponse.success && apiResponse.data && Array.isArray(apiResponse.data)) {
+          console.log('Processing data:', apiResponse.data);
+          const transformedRequests = apiResponse.data.map(transformApiRequest);
+          console.log('Transformed requests:', transformedRequests);
           setRequests(transformedRequests);
         } else {
-          throw new Error(data.errorMessage || 'Failed to fetch requests');
+          throw new Error(apiResponse.errorMessage || 'No data received from server');
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch requests');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch requests';
+        setError(errorMessage);
         console.error('Failed to fetch requests:', err);
         toast({
           title: "Error",
-          description: "Failed to fetch requests from the server.",
+          description: errorMessage,
           variant: "destructive"
         });
       } finally {
