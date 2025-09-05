@@ -139,10 +139,24 @@ export function RequestsList({
         const rawData = await response.json();
         console.log('Raw API response:', rawData);
         
-        // Handle array response format
+        // Handle the actual response format: array containing object with success/data structure
         let apiResponse: ApiResponse;
         if (Array.isArray(rawData) && rawData.length > 0) {
-          apiResponse = rawData[0];
+          // Extract the first object from the array
+          const responseObj = rawData[0];
+          if (responseObj && typeof responseObj === 'object' && 'success' in responseObj) {
+            apiResponse = responseObj;
+          } else {
+            // Fallback: treat the array items as direct data
+            apiResponse = {
+              success: true,
+              code: null,
+              errorCode: null,
+              errorMessage: null,
+              requestId: 'direct-response',
+              data: rawData
+            };
+          }
         } else if (rawData && typeof rawData === 'object' && 'success' in rawData) {
           apiResponse = rawData;
         } else {
@@ -151,13 +165,15 @@ export function RequestsList({
         
         console.log('Parsed API response:', apiResponse);
         
-        if (apiResponse.data && Array.isArray(apiResponse.data)) {
+        // Ensure we have data and it's an array
+        if (apiResponse.success && apiResponse.data && Array.isArray(apiResponse.data)) {
           console.log('Processing data:', apiResponse.data);
           const transformedRequests = apiResponse.data.map(transformApiRequest);
           console.log('Transformed requests:', transformedRequests);
           setRequests(transformedRequests);
         } else {
-          throw new Error(apiResponse.errorMessage || 'No data received from server');
+          const errorMsg = apiResponse.errorMessage || 'No valid data received from server';
+          throw new Error(errorMsg);
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to fetch requests';
