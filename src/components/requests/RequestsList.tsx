@@ -104,6 +104,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
         return "escalated";
       case "accepted":
         return "accepted";
+      case "modified":
+        return "approved"; // Treat MODIFIED as approved since it was processed by ABM
       default:
         return "pending";
     }
@@ -114,23 +116,36 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     if (discountValue && discountValue > 50) return "medium";
     return "low";
   };
-  const safeDiscountValue = apiRequest.discountValue ?? 0;
+  // Handle MODIFIED status - use ABM values if available
+  const finalOrderQty = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmOrderQty !== null 
+    ? apiRequest.abmOrderQty 
+    : apiRequest.orderQty;
+  
+  const finalDiscountValue = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null 
+    ? apiRequest.abmDiscountValue 
+    : (apiRequest.discountValue ?? 0);
+  
+  const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== ""
+    ? apiRequest.abmDiscountType 
+    : apiRequest.discountType;
+
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
   const dateTime = formatDateTime(apiRequest.createdAt);
   const escalatedDateTime = formatDateTime(apiRequest.abmReviewedAt);
+  
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
     requester: apiRequest.customerName,
     department: `Requested by: ${apiRequest.requestedByUserName}`,
     status: getStatus(apiRequest.abmStatus),
-    priority: getPriority(apiRequest.eligible, apiRequest.discountValue),
+    priority: getPriority(apiRequest.eligible, finalDiscountValue),
     createdAt: formatDate(apiRequest.createdAt),
     createdAtISO: apiRequest.createdAt, // Store original ISO string
-    description: `${apiRequest.discountType}: ${apiRequest.discountValue ? `₹${apiRequest.discountValue}` : 'No discount'} | Order Qty: ${apiRequest.orderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
+    description: `${finalDiscountType}: ${finalDiscountValue ? `₹${finalDiscountValue}` : 'No discount'} | Order Qty: ${finalOrderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
     campaignType: apiRequest.campaignType,
-    discountValue: safeDiscountValue,
-    orderQty: apiRequest.orderQty,
+    discountValue: finalDiscountValue,
+    orderQty: finalOrderQty,
     eligible: apiRequest.eligible,
     eligibilityReason: apiRequest.eligibilityReason,
     // Additional fields for the new UI requirements
@@ -537,8 +552,8 @@ export function RequestsList({
                   <div className="text-foreground text-base font-medium">{request.department.replace('Requested by: ', '')}</div>
                   <div className="text-gray-500 text-sm">{request.requestedByContact}</div>
                   
-                   {/* Escalated By Section - Show for escalated, accepted, and rejected requests */}
-                    {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? <div className="mt-3">
+                   {/* Escalated By Section - Show for escalated, accepted, rejected, and modified requests */}
+                    {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") ? <div className="mt-3">
                        <div className="text-gray-500 text-sm font-medium mb-1">Escalated By</div>
                        <div className="text-foreground text-base font-medium">{request.abmUserName} (ID: {request.abmId})</div>
                        <div className="text-gray-500 text-sm">{request.abmContactNumber}</div>
@@ -549,8 +564,8 @@ export function RequestsList({
                   <div className="text-foreground text-base font-medium">{request.requestedDate}</div>
                   <div className="text-gray-500 text-sm">{request.requestedTime}</div>
                   
-                  {/* Escalated At Section - Show for escalated, accepted, and rejected requests */}
-                  {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected") && <div className="mt-3">
+                  {/* Escalated At Section - Show for escalated, accepted, rejected, and modified requests */}
+                  {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && <div className="mt-3">
                       <div className="text-gray-500 text-sm font-medium mb-1">Escalated At</div>
                       <div className="text-foreground text-base font-medium">{request.escalatedAt}</div>
                       <div className="text-gray-500 text-sm">{request.escalatedAtTime}</div>
