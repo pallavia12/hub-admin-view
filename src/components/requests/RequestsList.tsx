@@ -424,12 +424,21 @@ export function RequestsList({
               </div>
 
               {/* ABM Status - Clean and prominent display */}
-              {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED") && <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
+              {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED" || request.abmStatus === "ESCALATED") && <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
                   <div className="flex items-center gap-2">
                     <div className="text-sm font-medium text-gray-600">ABM Decision</div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : "bg-yellow-500 text-white"}`}>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : 
+                      request.abmStatus === "ESCALATED" ? "bg-orange-500 text-white" :
+                      "bg-yellow-500 text-white"
+                    }`}>
                       {request.abmStatus}
                     </div>
+                    {request.abmRemarks && request.abmRemarks.trim() !== "" && request.abmRemarks !== "null" && (
+                      <div className="text-sm text-gray-600 ml-2">
+                        <span className="font-medium">Remarks:</span> {request.abmRemarks}
+                      </div>
+                    )}
                   </div>
                 </div>}
 
@@ -499,15 +508,17 @@ export function RequestsList({
                 </div>
               </div>
 
-              {/* Action Buttons - Only show for pending/escalated requests */}
-              {showActions && (request.status === "pending" || request.status === "escalated") && <div className="flex items-center gap-3 pt-4 border-t border-border">
+              {/* Action Buttons - Show for pending/escalated requests */}
+              {showActions && (request.status === "pending" || request.status === "escalated" || request.abmStatus === "ESCALATED") && (
+                <div className="flex items-center gap-3 pt-4 border-t border-border">
                   <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
                     Accept
                   </Button>
                   <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
                     Reject
                   </Button>
-                </div>}
+                </div>
+              )}
 
               {/* Status badge for approved/rejected/accepted requests */}
               {request.status === "accepted" && request.acceptedAt && <div className="pt-4 border-t border-border">
