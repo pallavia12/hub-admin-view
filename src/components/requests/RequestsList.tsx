@@ -275,10 +275,20 @@ export function RequestsList({
   };
 
   const handleReject = (requestId: string) => {
+    const rejectedAt = new Date().toISOString();
     setRequests(prev => 
-      prev.map(req => 
-        req.id === requestId ? { ...req, status: "rejected" as const } : req
-      )
+      prev.map(req => {
+        if (req.id === requestId) {
+          const tat = calculateTAT(req.createdAt, rejectedAt);
+          return { 
+            ...req, 
+            status: "rejected" as const,
+            acceptedAt: rejectedAt, // Use same field for consistency
+            tat
+          };
+        }
+        return req;
+      })
     );
     toast({
       title: "Request Rejected",
@@ -381,11 +391,22 @@ export function RequestsList({
                   <input type="checkbox" className="w-4 h-4 rounded border border-border" />
                   <span className="text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
                 </div>
-                {request.eligible === 1 && (
-                  <Badge className="bg-foreground text-background px-3 py-1 text-sm font-medium">
-                    Eligible
-                  </Badge>
-                )}
+                <div className="flex flex-col items-end gap-2">
+                  {request.eligible === 1 ? (
+                    <Badge className="bg-foreground text-background px-3 py-1 text-sm font-medium">
+                      Eligible
+                    </Badge>
+                  ) : (
+                    <>
+                      <Badge className="bg-destructive text-destructive-foreground px-3 py-1 text-sm font-medium">
+                        Not Eligible
+                      </Badge>
+                      <span className="text-muted-foreground text-sm text-right max-w-xs">
+                        {request.eligibilityReason}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Customer Section */}
@@ -414,16 +435,6 @@ export function RequestsList({
                   <div className="text-muted-foreground text-sm">
                     {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
                   </div>
-                </div>
-              </div>
-
-              {/* Eligibility Section */}
-              <div className="mb-4">
-                <div className="text-muted-foreground text-sm mb-1">Eligibility</div>
-                <div className="text-foreground">
-                  {request.eligible === 1 
-                    ? 'Eligible' 
-                    : `Not Eligible - ${request.eligibilityReason}`}
                 </div>
               </div>
 
@@ -518,7 +529,25 @@ export function RequestsList({
                   </div>
                 </div>
               )}
-              {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && (
+              {request.status === "rejected" && (
+                <div className="pt-4 border-t border-border">
+                  <div className="text-foreground font-semibold">
+                    REJECTED {new Date(request.acceptedAt || '').toLocaleString('en-GB', {
+                      year: 'numeric',
+                      month: '2-digit', 
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6')}
+                  </div>
+                  <div className="text-muted-foreground text-sm">
+                    TAT: {request.tat}
+                  </div>
+                </div>
+              )}
+              {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && request.status !== "rejected" && (
                 <div className="pt-4 border-t border-border">
                   <Badge className={getStatusColor(request.status)}>
                     {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
