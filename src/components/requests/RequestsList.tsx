@@ -455,8 +455,8 @@ export function RequestsList({
                   <div className="text-foreground">{request.department.replace('Requested by: ', '')} (ID: {request.requestedBy})</div>
                   <div className="text-muted-foreground text-sm">{request.requestedByContact}</div>
                   
-                  {/* Escalated By Section - Show only for escalated requests */}
-                  {request.status === "escalated" && (
+                  {/* Escalated By Section - Show for escalated, accepted, and rejected requests */}
+                   {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? (
                     <div className="mt-3">
                       <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Escalated By</div>
                       <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
@@ -467,7 +467,7 @@ export function RequestsList({
                         </div>
                       )}
                     </div>
-                  )}
+                   ) : null}
                 </div>
                 <div>
                   <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1.5">Requested At</div>
