@@ -239,8 +239,27 @@ export function RequestsList({
     const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
     return `${days} days, ${hours} hours, ${minutes} minutes`;
   };
-  const handleApprove = (requestId: string) => {
+  const handleApprove = async (requestId: string) => {
     const acceptedAt = new Date().toISOString();
+    const adminReviewedAt = new Date().toLocaleString('sv-SE', { timeZone: 'UTC' }).replace('T', ' ');
+    
+    // Send data to backend
+    try {
+      await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          RequestId: requestId.replace('REQ-', ''),
+          AdminUsername: 'admin', // Replace with actual admin username from auth context
+          AdminReviewedAt: adminReviewedAt
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send approval data to backend:', error);
+    }
+
     setRequests(prev => prev.map(req => {
       if (req.id === requestId) {
         const tat = calculateTAT(req.createdAt, acceptedAt);
@@ -259,8 +278,27 @@ export function RequestsList({
       variant: "default"
     });
   };
-  const handleReject = (requestId: string) => {
+  const handleReject = async (requestId: string) => {
     const rejectedAt = new Date().toISOString();
+    const adminReviewedAt = new Date().toLocaleString('sv-SE', { timeZone: 'UTC' }).replace('T', ' ');
+    
+    // Send data to backend
+    try {
+      await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          RequestId: requestId.replace('REQ-', ''),
+          AdminUsername: 'admin', // Replace with actual admin username from auth context
+          AdminReviewedAt: adminReviewedAt
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send rejection data to backend:', error);
+    }
+
     setRequests(prev => prev.map(req => {
       if (req.id === requestId) {
         const tat = calculateTAT(req.createdAt, rejectedAt);
@@ -448,8 +486,8 @@ export function RequestsList({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              {showActions && <div className="flex items-center gap-3 pt-4 border-t border-border">
+              {/* Action Buttons - Only show for pending/escalated requests */}
+              {showActions && (request.status === "pending" || request.status === "escalated") && <div className="flex items-center gap-3 pt-4 border-t border-border">
                   <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
                     Accept
                   </Button>
