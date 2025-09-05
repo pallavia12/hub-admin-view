@@ -411,18 +411,18 @@ export function RequestsList({
 
               {/* Customer Section */}
               <div className="mb-4">
-                <div className="text-muted-foreground text-sm mb-1">Customer</div>
+                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Customer</div>
                 <div className="text-foreground font-semibold text-lg">
                   {request.requester} ({request.customerId})
                 </div>
-                <div className="text-muted-foreground text-sm">{request.contactNumber}</div>
+                <div className="text-muted-foreground text-sm font-medium">{request.contactNumber}</div>
               </div>
 
               {/* Campaign and Order Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
-                  <div className="text-muted-foreground text-sm mb-1">Campaign</div>
-                  <div className="text-foreground">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Campaign</div>
+                  <div className="text-foreground font-medium">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
                   {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && (
                     <div className="text-muted-foreground text-sm mt-1">
                       SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
@@ -430,8 +430,8 @@ export function RequestsList({
                   )}
                 </div>
                 <div>
-                  <div className="text-muted-foreground text-sm mb-1">Order</div>
-                  <div className="text-foreground">{request.orderQty} kg</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Order</div>
+                  <div className="text-foreground font-medium">{request.orderQty} kg</div>
                   <div className="text-muted-foreground text-sm">
                     {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
                   </div>
@@ -440,8 +440,8 @@ export function RequestsList({
 
               {/* Discount Section */}
               <div className="mb-4">
-                <div className="text-muted-foreground text-sm mb-1">Discount</div>
-                <div className="text-foreground">
+                <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Discount</div>
+                <div className="text-foreground font-medium">
                   {request.discountValue > 0 
                     ? `₹${request.discountValue} (${request.discountType})` 
                     : 'No discount specified'}
@@ -451,15 +451,15 @@ export function RequestsList({
               {/* Requested By and Date Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div>
-                  <div className="text-muted-foreground text-sm mb-1">Requested By</div>
-                  <div className="text-foreground">{request.department.replace('Requested by: ', '')} (ID: {request.requestedBy})</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Requested By</div>
+                  <div className="text-foreground font-medium">{request.department.replace('Requested by: ', '')} (ID: {request.requestedBy})</div>
                   <div className="text-muted-foreground text-sm">{request.requestedByContact}</div>
                   
                   {/* Escalated By Section - Show only for escalated requests */}
                   {request.status === "escalated" && (
                     <div className="mt-4">
-                      <div className="text-muted-foreground text-sm mb-1">Escalated By</div>
-                      <div className="text-foreground">{request.abmUserName} (ID: {request.abmId})</div>
+                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Escalated By</div>
+                      <div className="text-foreground font-medium">{request.abmUserName} (ID: {request.abmId})</div>
                       <div className="text-muted-foreground text-sm">{request.abmContactNumber}</div>
                       {request.abmRemarks && request.abmRemarks.trim() !== "" && (
                         <div className="text-muted-foreground text-sm mt-1">
@@ -470,15 +470,15 @@ export function RequestsList({
                   )}
                 </div>
                 <div>
-                  <div className="text-muted-foreground text-sm mb-1">Requested At</div>
-                  <div className="text-foreground">{request.requestedDate}</div>
+                  <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Requested At</div>
+                  <div className="text-foreground font-medium">{request.requestedDate}</div>
                   <div className="text-muted-foreground text-sm">{request.requestedTime}</div>
                   
                   {/* Escalated At Section - Show only for escalated requests */}
                   {request.status === "escalated" && (
                     <div className="mt-4">
-                      <div className="text-muted-foreground text-sm mb-1">Escalated At</div>
-                      <div className="text-foreground">{request.escalatedAt}</div>
+                      <div className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-2">Escalated At</div>
+                      <div className="text-foreground font-medium">{request.escalatedAt}</div>
                       <div className="text-muted-foreground text-sm">{request.escalatedAtTime}</div>
                     </div>
                   )}
