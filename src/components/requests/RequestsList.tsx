@@ -35,6 +35,9 @@ interface ApiRequest {
   reason: string | null;
   abmDiscountType: string | null;
   abmRemarks: string;
+  adminReviewedAt: string | null;
+  adminReviewedBy: number | null;
+  adminStatus: string | null;
 }
 interface Request {
   id: string;
@@ -70,6 +73,8 @@ interface Request {
   acceptedAt?: string;
   tat?: string;
   abmStatus: string;
+  adminReviewedAt?: string | null;
+  adminStatus?: string | null;
 }
 interface ApiResponse {
   success: boolean;
@@ -87,6 +92,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return {
@@ -94,7 +100,24 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
       time: date.toLocaleTimeString()
     };
   };
-  const getStatus = (abmStatus: string): "pending" | "approved" | "rejected" | "escalated" | "accepted" => {
+
+  // Check if admin fields are available
+  const hasAdminAction = apiRequest.adminStatus !== null && apiRequest.adminStatus !== undefined;
+  
+  const getStatus = (abmStatus: string, adminStatus: string | null): "pending" | "approved" | "rejected" | "escalated" | "accepted" => {
+    // If admin has taken action, prioritize admin status
+    if (hasAdminAction && adminStatus) {
+      switch (adminStatus.toLowerCase()) {
+        case "accepted":
+          return "accepted";
+        case "rejected":
+          return "rejected";
+        default:
+          return "pending";
+      }
+    }
+    
+    // Otherwise use ABM status
     switch (abmStatus.toLowerCase()) {
       case "approved":
         return "approved";
@@ -105,35 +128,41 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
       case "accepted":
         return "accepted";
       case "modified":
-        return "approved";
-      // Treat MODIFIED as approved since it was processed by ABM
+        return "approved"; // Treat MODIFIED as approved since it was processed by ABM
       default:
         return "pending";
     }
   };
+
   const getPriority = (eligible: number, discountValue: number | null): "low" | "medium" | "high" => {
     if (!eligible) return "high";
     if (discountValue && discountValue > 100) return "high";
     if (discountValue && discountValue > 50) return "medium";
     return "low";
   };
+
   // Handle MODIFIED status - use ABM values if available
   const finalOrderQty = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmOrderQty !== null ? apiRequest.abmOrderQty : apiRequest.orderQty;
   const finalDiscountValue = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null ? apiRequest.abmDiscountValue : apiRequest.discountValue ?? 0;
   const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== "" ? apiRequest.abmDiscountType : apiRequest.discountType;
+
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
   const dateTime = formatDateTime(apiRequest.createdAt);
-  const escalatedDateTime = formatDateTime(apiRequest.abmReviewedAt);
+  
+  // Use admin review time if available, otherwise use ABM review time
+  const reviewDateTime = hasAdminAction && apiRequest.adminReviewedAt 
+    ? formatDateTime(apiRequest.adminReviewedAt) 
+    : formatDateTime(apiRequest.abmReviewedAt);
+
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
     requester: apiRequest.customerName,
     department: `Requested by: ${apiRequest.requestedByUserName}`,
-    status: getStatus(apiRequest.abmStatus),
+    status: getStatus(apiRequest.abmStatus, apiRequest.adminStatus),
     priority: getPriority(apiRequest.eligible, finalDiscountValue),
     createdAt: formatDate(apiRequest.createdAt),
-    createdAtISO: apiRequest.createdAt,
-    // Store original ISO string
+    createdAtISO: apiRequest.createdAt, // Store original ISO string
     description: `${finalDiscountType}: ${finalDiscountValue ? `₹${finalDiscountValue}` : 'No discount'} | Order Qty: ${finalOrderQty}kg | ${apiRequest.eligible ? 'Eligible' : apiRequest.eligibilityReason}`,
     campaignType: apiRequest.campaignType,
     discountValue: finalDiscountValue,
@@ -152,12 +181,15 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     abmUserName: apiRequest.ABM_UserName,
     abmRemarks: apiRequest.abmRemarks,
     abmContactNumber: apiRequest.ContactNumber,
-    escalatedAt: escalatedDateTime.date,
-    escalatedAtTime: escalatedDateTime.time,
+    escalatedAt: reviewDateTime.date,
+    escalatedAtTime: reviewDateTime.time,
     skuName: apiRequest.skuName,
     skuId: apiRequest.skuId,
     orderMode: apiRequest.orderMode,
-    abmStatus: apiRequest.abmStatus
+    abmStatus: apiRequest.abmStatus,
+    // Store admin fields for TAT calculation
+    adminReviewedAt: apiRequest.adminReviewedAt,
+    adminStatus: apiRequest.adminStatus
   };
 };
 export function RequestsList({
@@ -561,53 +593,58 @@ export function RequestsList({
                 </div>}
 
               {/* Status badge for approved/rejected/accepted requests */}
-              {request.status === "accepted" && request.acceptedAt && <div className="pt-4 border-t border-border">
+              {(request.status === "accepted" || request.status === "rejected") && (request.acceptedAt || request.adminReviewedAt) && <div className="pt-4 border-t border-border">
                   <div className="text-foreground font-semibold">
-                    ACCEPTED {(() => {
-                const date = new Date(request.acceptedAt);
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false
-                }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
-              })()}
+                    {request.status.toUpperCase()} {(() => {
+                      // Use admin reviewed timestamp if available, otherwise use acceptedAt
+                      const timestampToShow = request.adminReviewedAt || request.acceptedAt;
+                      if (!timestampToShow) return 'Invalid Date';
+                      
+                      const date = new Date(timestampToShow);
+                      return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+                    })()}
                   </div>
                   <div className="text-muted-foreground text-sm">
-                    TAT: {request.tat || 'Not calculated'}
+                    TAT: {(() => {
+                      // Calculate TAT using admin review time if available
+                      const reviewTime = request.adminReviewedAt || request.acceptedAt;
+                      if (!reviewTime) return 'Not calculated';
+                      
+                      const created = new Date(request.createdAtISO);
+                      const reviewed = new Date(reviewTime);
+                      
+                      if (isNaN(created.getTime()) || isNaN(reviewed.getTime())) {
+                        return "Invalid date";
+                      }
+                      
+                      const diffMs = reviewed.getTime() - created.getTime();
+                      if (diffMs < 0) {
+                        return "Invalid time range";
+                      }
+                      
+                      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
+                      const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
+                      return `${days} days, ${hours} hours, ${minutes} minutes`;
+                    })()}
                   </div>
                 </div>}
-              {request.status === "rejected" && request.acceptedAt && <div className="pt-4 border-t border-border">
-                  <div className="text-foreground font-semibold">
-                    REJECTED {(() => {
-                const date = new Date(request.acceptedAt);
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false
-                }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
-              })()}
-                  </div>
-                  <div className="text-muted-foreground text-sm">
-                    TAT: {request.tat || 'Not calculated'}
-                  </div>
-                </div>}
-              {request.status !== "pending" && request.status !== "escalated" && request.status !== "accepted" && request.status !== "rejected" && <div className="pt-4 border-t border-border">
-                  
-                </div>}
-            </div>)}
+              </div>
+            )}
           
             {filteredRequests.length === 0 && <div className="text-center py-8 text-muted-foreground">
                 No requests found matching your criteria.
               </div>}
           </div>}
       </CardContent>
-    </Card>;
+    </Card>
+  );
 }
