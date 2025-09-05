@@ -316,62 +316,94 @@ export function RequestsList({
         ) : (
           <div className="space-y-4">
             {filteredRequests.map((request) => (
-            <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-2 flex-1">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                    <h4 className="font-semibold text-foreground">{request.title}</h4>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getStatusColor(request.status)}>
-                        {request.status}
-                      </Badge>
-                      <Badge className={getPriorityColor(request.priority)}>
-                        {request.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-medium">ID:</span> {request.id} • 
-                    <span className="font-medium"> Requester:</span> {request.requester} • 
-                    <span className="font-medium"> Department:</span> {request.department} • 
-                    <span className="font-medium"> Date:</span> {request.createdAt}
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground">{request.description}</p>
+            <div key={request.id} className="border border-border rounded-lg p-6 transition-colors hover:bg-accent/50">
+              {/* Header with checkbox, ID and eligible badge */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" className="w-4 h-4 rounded border border-border" />
+                  <span className="text-lg font-semibold text-foreground">{request.id.replace('REQ-', '')}</span>
                 </div>
-                
-                {showActions && request.status === "pending" && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Eye size={16} className="mr-1" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleApprove(request.id)}
-                      className="text-success hover:bg-success hover:text-success-foreground"
-                    >
-                      <Check size={16} className="mr-1" />
-                      Approve
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReject(request.id)}
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <X size={16} className="mr-1" />
-                      Reject
-                    </Button>
-                  </div>
+                {request.eligible === 1 && (
+                  <Badge className="bg-foreground text-background px-3 py-1 text-sm font-medium">
+                    Eligible
+                  </Badge>
                 )}
               </div>
+
+              {/* Customer Section */}
+              <div className="mb-4">
+                <div className="text-muted-foreground text-sm mb-1">Customer</div>
+                <div className="text-foreground font-semibold text-lg">{request.requester}</div>
+                <div className="text-muted-foreground text-sm">Contact info here</div>
+              </div>
+
+              {/* Campaign and Order Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div>
+                  <div className="text-muted-foreground text-sm mb-1">Campaign</div>
+                  <div className="text-foreground">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground text-sm mb-1">Order</div>
+                  <div className="text-foreground">{request.orderQty} kg</div>
+                  <div className="text-muted-foreground text-sm">Delivery</div>
+                </div>
+              </div>
+
+              {/* Discount Section */}
+              <div className="mb-4">
+                <div className="text-muted-foreground text-sm mb-1">Discount</div>
+                <div className="text-foreground">
+                  {request.discountValue > 0 ? `₹${request.discountValue}` : 'No discount specified'}
+                </div>
+              </div>
+
+              {/* Requested By and Date Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <div className="text-muted-foreground text-sm mb-1">Requested By</div>
+                  <div className="text-foreground">{request.department.replace('Requested by: ', '')}</div>
+                  <div className="text-muted-foreground text-sm">Contact info</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground text-sm mb-1">Requested Date</div>
+                  <div className="text-foreground">{request.createdAt}</div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {showActions && request.status === "pending" && (
+                <div className="flex items-center gap-3 pt-4 border-t border-border">
+                  <Button
+                    onClick={() => handleApprove(request.id)}
+                    className="bg-foreground text-background hover:bg-foreground/90 px-6"
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleReject(request.id)}
+                    className="px-6"
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="px-6"
+                  >
+                    Modify
+                  </Button>
+                </div>
+              )}
+
+              {/* Status badge for non-pending requests */}
+              {request.status !== "pending" && (
+                <div className="pt-4 border-t border-border">
+                  <Badge className={getStatusColor(request.status)}>
+                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  </Badge>
+                </div>
+              )}
             </div>
           ))}
           
