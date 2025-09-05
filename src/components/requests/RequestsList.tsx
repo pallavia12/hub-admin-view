@@ -162,6 +162,7 @@ export function RequestsList({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [actedRequests, setActedRequests] = useState<Set<string>>(new Set());
   const {
     toast
   } = useToast();
@@ -254,7 +255,15 @@ export function RequestsList({
   };
   const handleApprove = async (requestId: string) => {
     const acceptedAt = new Date().toISOString();
-    const adminReviewedAt = new Date().toLocaleString('sv-SE', { timeZone: 'UTC' }).replace('T', ' ');
+    // Convert to IST format
+    const istDate = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+    const adminReviewedAt = istDate.toISOString().replace('T', ' ').substring(0, 19);
+    
+    // Get username from localStorage
+    const adminUsername = localStorage.getItem('username') || 'admin';
+    
+    // Add to acted requests to hide buttons
+    setActedRequests(prev => new Set([...prev, requestId]));
     
     // Send data to backend
     try {
@@ -267,8 +276,9 @@ export function RequestsList({
         mode: 'cors',
         body: JSON.stringify({
           RequestId: requestId.replace('REQ-', ''),
-          AdminUsername: 'admin', // Replace with actual admin username from auth context
-          AdminReviewedAt: adminReviewedAt
+          AdminUsername: adminUsername,
+          AdminReviewedAt: adminReviewedAt,
+          AdminStatus: 'ACCEPTED'
         })
       });
 
@@ -310,7 +320,15 @@ export function RequestsList({
   };
   const handleReject = async (requestId: string) => {
     const rejectedAt = new Date().toISOString();
-    const adminReviewedAt = new Date().toLocaleString('sv-SE', { timeZone: 'UTC' }).replace('T', ' ');
+    // Convert to IST format
+    const istDate = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+    const adminReviewedAt = istDate.toISOString().replace('T', ' ').substring(0, 19);
+    
+    // Get username from localStorage
+    const adminUsername = localStorage.getItem('username') || 'admin';
+    
+    // Add to acted requests to hide buttons
+    setActedRequests(prev => new Set([...prev, requestId]));
     
     // Send data to backend
     try {
@@ -323,8 +341,9 @@ export function RequestsList({
         mode: 'cors',
         body: JSON.stringify({
           RequestId: requestId.replace('REQ-', ''),
-          AdminUsername: 'admin', // Replace with actual admin username from auth context
-          AdminReviewedAt: adminReviewedAt
+          AdminUsername: adminUsername,
+          AdminReviewedAt: adminReviewedAt,
+          AdminStatus: 'REJECTED'
         })
       });
 
@@ -518,15 +537,12 @@ export function RequestsList({
                   <div className="text-foreground text-base font-medium">{request.department.replace('Requested by: ', '')}</div>
                   <div className="text-gray-500 text-sm">{request.requestedByContact}</div>
                   
-                  {/* Escalated By Section - Show for escalated, accepted, and rejected requests */}
-                   {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? <div className="mt-3">
-                      <div className="text-gray-500 text-sm font-medium mb-1">Escalated By</div>
-                      <div className="text-foreground text-base font-medium">{request.abmUserName} (ID: {request.abmId})</div>
-                      <div className="text-gray-500 text-sm">{request.abmContactNumber}</div>
-                      {request.abmRemarks && request.abmRemarks.trim() !== "" && <div className="text-gray-500 text-sm mt-1">
-                          Remarks: {request.abmRemarks}
-                        </div>}
-                    </div> : null}
+                   {/* Escalated By Section - Show for escalated, accepted, and rejected requests */}
+                    {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" ? <div className="mt-3">
+                       <div className="text-gray-500 text-sm font-medium mb-1">Escalated By</div>
+                       <div className="text-foreground text-base font-medium">{request.abmUserName} (ID: {request.abmId})</div>
+                       <div className="text-gray-500 text-sm">{request.abmContactNumber}</div>
+                     </div> : null}
                 </div>
                 <div>
                   <div className="text-gray-500 text-sm font-medium mb-1">Requested Date</div>
@@ -542,8 +558,8 @@ export function RequestsList({
                 </div>
               </div>
 
-              {/* Action Buttons - Show for pending/escalated requests */}
-              {showActions && (request.status === "pending" || request.status === "escalated" || request.abmStatus === "ESCALATED") && (
+              {/* Action Buttons - Show for pending/escalated requests that haven't been acted upon */}
+              {showActions && (request.status === "pending" || request.status === "escalated" || request.abmStatus === "ESCALATED") && !actedRequests.has(request.id) && (
                 <div className="flex items-center gap-3 pt-4 border-t border-border">
                   <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
                     Accept
