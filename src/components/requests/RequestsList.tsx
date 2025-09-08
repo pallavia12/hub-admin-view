@@ -90,25 +90,24 @@ interface RequestsListProps {
 }
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString + 'Z'); 
+    return date.toLocaleDateString('en-GB', { timeZone: 'UTC' });
+    //return new Date(dateString).toLocaleDateString();
   };
 
   const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString + 'Z'); 
+    return {
+      date: date.toLocaleDateString('en-GB', { timeZone: 'UTC' }),
+      time: date.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour12: false })
+    };
+    /*
     const date = new Date(dateString);
     return {
       date: date.toLocaleDateString(),
       time: date.toLocaleTimeString()
     };
-  };
-
-  const formatISTDateTime = (dateString: string) => {
-    // Return the raw IST string as-is, just format for display
-    const date = new Date(dateString);
-    return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString(),
-      raw: dateString // Keep raw value for IST display
-    };
+    */
   };
 
   // Check if admin fields are available
@@ -157,16 +156,18 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== "" ? apiRequest.abmDiscountType : apiRequest.discountType;
 
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
-  const dateTime = formatISTDateTime(apiRequest.createdAt);
+  const dateTime = formatDateTime(apiRequest.createdAt);
   
-  // Always use ABM review time for escalated timestamp (IST)
-  const reviewDateTime = formatISTDateTime(apiRequest.abmReviewedAt);
+  // Use admin review time if available, otherwise use ABM review time
+  const reviewDateTime = hasAdminAction && apiRequest.adminReviewedAt 
+    ? formatDateTime(apiRequest.adminReviewedAt) 
+    : formatDateTime(apiRequest.abmReviewedAt);
 
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
     requester: apiRequest.customerName,
-    department: `Requested by: ${apiRequest.requestedByUserName} (ID: ${apiRequest.requestedBy})`,
+    department: `Requested by: ${apiRequest.requestedByUserName}`,
     status: getStatus(apiRequest.abmStatus, apiRequest.adminStatus),
     priority: getPriority(apiRequest.eligible, finalDiscountValue),
     createdAt: formatDate(apiRequest.createdAt),
@@ -306,7 +307,10 @@ export function RequestsList({
     // Get username from localStorage
     const adminUsername = localStorage.getItem('username') || 'admin';
 
-    // Send data to backend and wait for response
+    // Add to acted requests to hide buttons
+    setActedRequests(prev => new Set([...prev, requestId]));
+
+    // Send data to backend
     try {
       const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
@@ -322,52 +326,39 @@ export function RequestsList({
           AdminStatus: 'ACCEPTED'
         })
       });
-      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const responseData = await response.json();
-      
-      // Check if response indicates failure
-      if (responseData.success === false) {
-        toast({
-          title: "Error",
-          description: responseData.message || "Failed to approve request",
-          variant: "destructive"
-        });
-        return; // Don't update UI, keep buttons visible
-      }
-
-      // Success - update UI
-      setActedRequests(prev => new Set([...prev, requestId]));
-      setRequests(prev => prev.map(req => {
-        if (req.id === requestId) {
-          const tat = calculateTAT(req.createdAtISO, acceptedAt);
-          return {
-            ...req,
-            status: "accepted" as const,
-            acceptedAt,
-            tat
-          };
-        }
-        return req;
-      }));
-      
       toast({
-        title: "Request Accepted",
-        description: `Request ${requestId} has been accepted successfully.`,
+        title: "Backend Updated",
+        description: `Approval sent to backend successfully.`,
         variant: "default"
       });
-      
     } catch (error) {
       console.error('Failed to send approval data to backend:', error);
       toast({
-        title: "Network Error",
-        description: `Failed to connect to backend. Please try again.`,
+        title: "Backend Error",
+        description: `Failed to send approval to backend. The request is updated locally.`,
         variant: "destructive"
       });
     }
+    setRequests(prev => prev.map(req => {
+      if (req.id === requestId) {
+        const tat = calculateTAT(req.createdAtISO, acceptedAt);
+        return {
+          ...req,
+          status: "accepted" as const,
+          acceptedAt,
+          tat
+        };
+      }
+      return req;
+    }));
+    toast({
+      title: "Request Accepted",
+      description: `Request ${requestId} has been accepted successfully.`,
+      variant: "default"
+    });
   };
   const handleReject = async (requestId: string) => {
     const rejectedAt = new Date().toISOString();
@@ -378,7 +369,10 @@ export function RequestsList({
     // Get username from localStorage
     const adminUsername = localStorage.getItem('username') || 'admin';
 
-    // Send data to backend and wait for response
+    // Add to acted requests to hide buttons
+    setActedRequests(prev => new Set([...prev, requestId]));
+
+    // Send data to backend
     try {
       const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
@@ -394,52 +388,40 @@ export function RequestsList({
           AdminStatus: 'REJECTED'
         })
       });
-      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const responseData = await response.json();
-      
-      // Check if response indicates failure
-      if (responseData.success === false) {
-        toast({
-          title: "Error",
-          description: responseData.message || "Failed to reject request",
-          variant: "destructive"
-        });
-        return; // Don't update UI, keep buttons visible
-      }
-
-      // Success - update UI
-      setActedRequests(prev => new Set([...prev, requestId]));
-      setRequests(prev => prev.map(req => {
-        if (req.id === requestId) {
-          const tat = calculateTAT(req.createdAtISO, rejectedAt);
-          return {
-            ...req,
-            status: "rejected" as const,
-            acceptedAt: rejectedAt,
-            tat
-          };
-        }
-        return req;
-      }));
-      
       toast({
-        title: "Request Rejected",
-        description: `Request ${requestId} has been rejected.`,
-        variant: "destructive"
+        title: "Backend Updated",
+        description: `Rejection sent to backend successfully.`,
+        variant: "default"
       });
-      
     } catch (error) {
       console.error('Failed to send rejection data to backend:', error);
       toast({
-        title: "Network Error",
-        description: `Failed to connect to backend. Please try again.`,
+        title: "Backend Error",
+        description: `Failed to send rejection to backend. The request is updated locally.`,
         variant: "destructive"
       });
     }
+    setRequests(prev => prev.map(req => {
+      if (req.id === requestId) {
+        const tat = calculateTAT(req.createdAtISO, rejectedAt);
+        return {
+          ...req,
+          status: "rejected" as const,
+          acceptedAt: rejectedAt,
+          // Use same field for consistency
+          tat
+        };
+      }
+      return req;
+    }));
+    toast({
+      title: "Request Rejected",
+      description: `Request ${requestId} has been rejected.`,
+      variant: "destructive"
+    });
   };
   const filteredRequests = requests.filter(req => {
     const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.requester.toLowerCase().includes(searchTerm.toLowerCase()) || req.department.toLowerCase().includes(searchTerm.toLowerCase());
@@ -594,7 +576,7 @@ export function RequestsList({
                 <div className="mb-2">
                   <div className="text-gray-500 text-xs font-medium mb-0.5">Discount</div>
                   <div className="text-foreground text-sm font-medium">
-                    {request.discountValue > 0 ? `₹${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
+                    {request.discountValue > 0 ? `${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
                   </div>
                 </div>
 
@@ -615,7 +597,7 @@ export function RequestsList({
                     )}
                   </div>
                   <div>
-                    <div className="text-gray-500 text-xs font-medium mb-0.5">Requested At</div>
+                    <div className="text-gray-500 text-xs font-medium mb-0.5">Requested Date</div>
                     <div className="text-foreground text-sm font-medium">{request.requestedDate}</div>
                     <div className="text-gray-500 text-xs">{request.requestedTime}</div>
                     
@@ -630,12 +612,12 @@ export function RequestsList({
                   </div>
                 </div>
                 {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
-                {showActions && !actedRequests.has(request.id) && !request.adminStatus && (
+                {showActions && !actedRequests.has(request.id) && (
                   <div className="flex items-center gap-3 pt-4 border-t border-border">
-                    <Button variant="default" onClick={() => handleApprove(request.id)} className="flex py-3 text-base font-medium">
+                    <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
                       Accept
                     </Button>
-                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex py-3 text-base font-medium">
+                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
                       Reject
                     </Button>
                   </div>
