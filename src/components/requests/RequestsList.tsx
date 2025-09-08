@@ -447,8 +447,7 @@ export function RequestsList({
         return "bg-muted text-muted-foreground";
     }
   };
-  return (
-    <Card>
+  return <Card>
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Approval Requests</CardTitle>
@@ -492,7 +491,7 @@ export function RequestsList({
         ) : (
           <div className="space-y-4">
             {filteredRequests.map(request => (
-              <div key={request.id} className="border border-border rounded-lg py-3 px-4 transition-colors hover:bg-accent/50">
+              <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
                 {/* Header with checkbox, ID and eligible badge */}
                 <div className="flex items-start justify-between mb-4 gap-3">
                   <div className="flex items-center gap-3">
@@ -509,106 +508,83 @@ export function RequestsList({
                         <Badge className="bg-red-500 text-white px-3 py-1 text-sm font-medium rounded-full">
                           Not Eligible
                         </Badge>
-                        <span className="text-gray-500 text-sm text-right max-w-[160px] leading-tight mt-1">
-                          {request.eligibilityReason}
-                        </span>
+                        <span className="text-xs text-gray-500 text-right max-w-[150px]">{request.eligibilityReason}</span>
                       </>
                     )}
                   </div>
                 </div>
 
-                {/* ABM Status - Clean and prominent display */}
-                {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED" || request.abmStatus === "ESCALATED") && (
-                  <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
-                    <div className="flex items-center gap-2">
-                      <div className="text-sm font-medium text-gray-600">ABM Decision</div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : request.abmStatus === "ESCALATED" ? "bg-orange-500 text-white" : "bg-yellow-500 text-white"}`}>
-                        {request.abmStatus}
+                {/* Main content */}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Left Column */}
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-muted-foreground text-sm">Customer Name:</span>
+                        <div className="font-medium">{request.requester}</div>
                       </div>
-                      {request.abmRemarks && request.abmRemarks.trim() !== "" && request.abmRemarks !== "null" && (
-                        <div className="text-sm text-gray-600 ml-2">
-                          <span className="font-medium">Remarks:</span> {request.abmRemarks}
-                        </div>
-                      )}
+                      <div>
+                        <span className="text-muted-foreground text-sm">Campaign Type:</span>
+                        <div className="font-medium">{request.campaignType}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">SKU Name:</span>
+                        <div className="font-medium">{request.skuName || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Order Qty:</span>
+                        <div className="font-medium">{request.orderQty} kg</div>
+                      </div>
                     </div>
+
+                    {/* Right Column */}
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-muted-foreground text-sm">Contact Number:</span>
+                        <div className="font-medium">{request.contactNumber}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Discount Type:</span>
+                        <div className="font-medium">{request.discountType}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Discount Value:</span>
+                        <div className="font-medium">₹{request.discountValue}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Requested Date & Time:</span>
+                        <div className="font-medium">{request.requestedDate} {request.requestedTime}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status and Priority */}
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <Badge className={getStatusColor(request.status)}>
+                      {request.adminStatus || request.status.toUpperCase()}
+                    </Badge>
+                    <Badge className={getPriorityColor(request.priority)}>
+                      {request.priority.toUpperCase()}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Escalated By and Escalated At - Show when status is escalated, approved, accepted, rejected, or modified */}
+                {(request.status === "escalated" || request.status === "approved" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="text-muted-foreground text-sm">Escalated By:</div>
+                    <div className="text-gray-500 text-sm">{request.abmUserName}</div>
+                    <div className="text-gray-500 text-sm">{request.escalatedAt} {request.escalatedAtTime}</div>
                   </div>
                 )}
 
-                {/* Customer Section */}
-                <div className="mb-4">
-                  <div className="text-gray-500 text-sm font-medium mb-1">Customer</div>
-                  <div className="text-foreground font-semibold text-lg">
-                    {request.requester} ({request.customerId})
-                  </div>
-                  <div className="text-gray-500 text-base">{request.contactNumber}</div>
-                </div>
-
-                {/* Campaign and Order Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Campaign</div>
-                    <div className="text-foreground text-base font-medium">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
-                    {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && (
-                      <div className="text-gray-500 text-sm mt-1">
-                        SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Order</div>
-                    <div className="text-foreground text-base font-medium">{request.orderQty} kg</div>
-                    <div className="text-gray-500 text-sm">
-                      {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Discount Section */}
-                <div className="mb-4">
-                  <div className="text-gray-500 text-sm font-medium mb-1">Discount</div>
-                  <div className="text-foreground text-base font-medium">
-                    {request.discountValue > 0 ? `${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
-                  </div>
-                </div>
-
-                {/* Requested By and Date Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Requested By</div>
-                    <div className="text-foreground text-base font-medium">{request.department.replace('Requested by: ', '')}</div>
-                    <div className="text-gray-500 text-sm">{request.requestedByContact}</div>
-                    
-                    {/* Escalated By Section - Show for escalated, accepted, rejected, and modified requests */}
-                    {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && (
-                      <div className="mt-3">
-                        <div className="text-gray-500 text-sm font-medium mb-1">Escalated By</div>
-                        <div className="text-foreground text-base font-medium">{request.abmUserName} (ID: {request.abmId})</div>
-                        <div className="text-gray-500 text-sm">{request.abmContactNumber}</div>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Requested Date</div>
-                    <div className="text-foreground text-base font-medium">{request.requestedDate}</div>
-                    <div className="text-gray-500 text-sm">{request.requestedTime}</div>
-                    
-                    {/* Escalated At Section - Show for escalated, accepted, rejected, and modified requests */}
-                    {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && (
-                      <div className="mt-3">
-                        <div className="text-gray-500 text-sm font-medium mb-1">Escalated At</div>
-                        <div className="text-foreground text-base font-medium">{request.escalatedAt}</div>
-                        <div className="text-gray-500 text-sm">{request.escalatedAtTime}</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
                 {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
-                {showActions && !actedRequests.has(request.id) && (
+                {showActions && !actedRequests.has(request.id) && !(request.adminReviewedAt || request.acceptedAt) && (
                   <div className="flex items-center gap-3 pt-4 border-t border-border">
-                    <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
+                    <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-2 text-base font-medium">
                       Accept
                     </Button>
-                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
+                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-2 text-base font-medium">
                       Reject
                     </Button>
                   </div>
@@ -618,7 +594,7 @@ export function RequestsList({
                 {(request.status === "accepted" || request.status === "rejected") && (request.acceptedAt || request.adminReviewedAt) && (
                   <div className="pt-4 border-t border-border">
                     <div className="text-foreground font-semibold">
-                      {request.status.toUpperCase()} {(() => {
+                      {request.adminStatus || request.status.toUpperCase()} {(() => {
                         // Use admin reviewed timestamp if available, otherwise use acceptedAt
                         const timestampToShow = request.adminReviewedAt || request.acceptedAt;
                         if (!timestampToShow) return 'Invalid Date';
@@ -675,3 +651,5 @@ export function RequestsList({
     </Card>
   );
 }
+
+export default RequestsList;
