@@ -90,24 +90,48 @@ interface RequestsListProps {
 }
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    // Parse IST date directly without timezone conversion
+    const [datePart] = dateString.replace('.000+0000', '').split('T');
+    const [year, month, day] = datePart.split('-');
+    return `${month}/${day}/${year}`;
   };
 
   const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse IST timestamp directly without timezone conversion
+    const [datePart, timePart] = dateString.replace('.000+0000', '').split('T');
+    const [year, month, day] = datePart.split('-');
+    const [hour, minute, second] = timePart.split(':');
+    
+    const displayDate = `${month}/${day}/${year}`;
+    const hourNum = parseInt(hour);
+    const ampm = hourNum >= 12 ? 'PM' : 'AM';
+    const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
+    const displayTime = `${displayHour}:${minute}:${second} ${ampm}`;
+    
     return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString()
+      date: displayDate,
+      time: displayTime
     };
   };
 
   const formatISTDateTime = (dateString: string) => {
-    // Return the raw IST string as-is, just format for display
-    const date = new Date(dateString);
+    // Parse IST timestamp directly without timezone conversion
+    // Input format: "2025-08-07T07:07:13.000+0000" (IST time in UTC format)
+    const [datePart, timePart] = dateString.replace('.000+0000', '').split('T');
+    const [year, month, day] = datePart.split('-');
+    const [hour, minute, second] = timePart.split(':');
+    
+    // Format as IST display
+    const displayDate = `${month}/${day}/${year}`;
+    const hourNum = parseInt(hour);
+    const ampm = hourNum >= 12 ? 'PM' : 'AM';
+    const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
+    const displayTime = `${displayHour}:${minute}:${second} ${ampm}`;
+    
     return {
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString(),
-      raw: dateString // Keep raw value for IST display
+      date: displayDate,
+      time: displayTime,
+      raw: dateString
     };
   };
 
