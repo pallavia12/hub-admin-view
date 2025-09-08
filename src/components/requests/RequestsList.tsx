@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Check, X, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
 interface ApiRequest {
   requestId: number;
   customerName: string;
@@ -39,6 +40,7 @@ interface ApiRequest {
   adminReviewedBy: number | null;
   adminStatus: string | null;
 }
+
 interface Request {
   id: string;
   title: string;
@@ -76,6 +78,7 @@ interface Request {
   adminReviewedAt?: string | null;
   adminStatus?: string | null;
 }
+
 interface ApiResponse {
   success: boolean;
   code: string | null;
@@ -84,10 +87,12 @@ interface ApiResponse {
   requestId: string;
   data: ApiRequest[];
 }
+
 interface RequestsListProps {
   showActions?: boolean;
   limit?: number;
 }
+
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -192,6 +197,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     adminStatus: apiRequest.adminStatus
   };
 };
+
 export function RequestsList({
   showActions = true,
   limit
@@ -202,9 +208,8 @@ export function RequestsList({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [actedRequests, setActedRequests] = useState<Set<string>>(new Set());
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -272,6 +277,7 @@ export function RequestsList({
     };
     fetchRequests();
   }, [toast]);
+
   const calculateTAT = (createdAtISO: string, acceptedAt: string) => {
     const created = new Date(createdAtISO);
     const accepted = new Date(acceptedAt);
@@ -289,6 +295,45 @@ export function RequestsList({
     const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
     return `${days} days, ${hours} hours, ${minutes} minutes`;
   };
+
+  const formatTimestamp = (timestamp: string) => {
+    if (!timestamp) return 'Invalid Date';
+    
+    const date = new Date(timestamp);
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+  };
+
+  const calculateTATForRequest = (request: Request) => {
+    // Calculate TAT using admin review time if available
+    const reviewTime = request.adminReviewedAt || request.acceptedAt;
+    if (!reviewTime) return 'Not calculated';
+    
+    const created = new Date(request.createdAtISO);
+    const reviewed = new Date(reviewTime);
+    
+    if (isNaN(created.getTime()) || isNaN(reviewed.getTime())) {
+      return "Invalid date";
+    }
+    
+    const diffMs = reviewed.getTime() - created.getTime();
+    if (diffMs < 0) {
+      return "Invalid time range";
+    }
+    
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
+    const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
+    return `${days} days, ${hours} hours, ${minutes} minutes`;
+  };
+
   const handleApprove = async (requestId: string) => {
     const acceptedAt = new Date().toISOString();
     // Convert to IST format
@@ -351,6 +396,7 @@ export function RequestsList({
       variant: "default"
     });
   };
+
   const handleReject = async (requestId: string) => {
     const rejectedAt = new Date().toISOString();
     // Convert to IST format
@@ -414,11 +460,13 @@ export function RequestsList({
       variant: "destructive"
     });
   };
+
   const filteredRequests = requests.filter(req => {
     const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.requester.toLowerCase().includes(searchTerm.toLowerCase()) || req.department.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || req.status === statusFilter;
     return matchesSearch && matchesStatus;
   }).slice(0, limit);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -435,6 +483,7 @@ export function RequestsList({
         return "bg-muted text-muted-foreground";
     }
   };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
@@ -447,15 +496,23 @@ export function RequestsList({
         return "bg-muted text-muted-foreground";
     }
   };
-  return <Card>
+
+  return (
+    <Card>
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Approval Requests</CardTitle>
           
-          {showActions && <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {showActions && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search requests..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-64" />
+                <Input 
+                  placeholder="Search requests..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="pl-10 w-64" 
+                />
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -471,7 +528,8 @@ export function RequestsList({
                   <SelectItem value="escalated">Escalated</SelectItem>
                 </SelectContent>
               </Select>
-            </div>}
+            </div>
+          )}
         </div>
       </CardHeader>
       
@@ -594,46 +652,10 @@ export function RequestsList({
                 {(request.status === "accepted" || request.status === "rejected") && (request.acceptedAt || request.adminReviewedAt) && (
                   <div className="pt-4 border-t border-border">
                     <div className="text-foreground font-semibold">
-                      {request.adminStatus || request.status.toUpperCase()} {(() => {
-                        // Use admin reviewed timestamp if available, otherwise use acceptedAt
-                        const timestampToShow = request.adminReviewedAt || request.acceptedAt;
-                        if (!timestampToShow) return 'Invalid Date';
-                        
-                        const date = new Date(timestampToShow);
-                        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
-                      })()}
+                      {request.adminStatus || request.status.toUpperCase()} {formatTimestamp(request.adminReviewedAt || request.acceptedAt!)}
                     </div>
                     <div className="text-muted-foreground text-sm">
-                      TAT: {(() => {
-                        // Calculate TAT using admin review time if available
-                        const reviewTime = request.adminReviewedAt || request.acceptedAt;
-                        if (!reviewTime) return 'Not calculated';
-                        
-                        const created = new Date(request.createdAtISO);
-                        const reviewed = new Date(reviewTime);
-                        
-                        if (isNaN(created.getTime()) || isNaN(reviewed.getTime())) {
-                          return "Invalid date";
-                        }
-                        
-                        const diffMs = reviewed.getTime() - created.getTime();
-                        if (diffMs < 0) {
-                          return "Invalid time range";
-                        }
-                        
-                        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
-                        const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
-                        return `${days} days, ${hours} hours, ${minutes} minutes`;
-                      })()}
+                      TAT: {calculateTATForRequest(request)}
                     </div>
                   </div>
                 )}
