@@ -206,7 +206,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     contactNumber: apiRequest.ContactNumber,
     requestedByContact: apiRequest.requestedByContact,
     requestedBy: apiRequest.requestedBy,
-    discountType: apiRequest.discountType,
+    discountType: finalDiscountType,
     requestedDate: dateTime.date,
     requestedTime: dateTime.time,
     abmId: apiRequest.ABM_Id,
@@ -305,8 +305,17 @@ export function RequestsList({
     fetchRequests();
   }, [toast]);
   const calculateTAT = (createdAtISO: string, acceptedAt: string) => {
-    const created = new Date(createdAtISO);
-    const accepted = new Date(acceptedAt);
+    // Parse IST timestamps directly without timezone conversion
+    // Both timestamps are already in IST format
+    const parseISTDate = (dateString: string) => {
+      const [datePart, timePart] = dateString.replace('.000+0000', '').split('T');
+      const [year, month, day] = datePart.split('-');
+      const [hour, minute, second] = timePart.split(':');
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+    };
+
+    const created = parseISTDate(createdAtISO);
+    const accepted = parseISTDate(acceptedAt);
 
     // Validate dates
     if (isNaN(created.getTime()) || isNaN(accepted.getTime())) {
@@ -674,16 +683,20 @@ export function RequestsList({
                         const timestampToShow = request.adminReviewedAt || request.acceptedAt;
                         if (!timestampToShow) return 'Invalid Date';
                         
-                        const date = new Date(timestampToShow);
-                        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
-                          year: 'numeric',
-                          month: '2-digit',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+                        // Parse IST timestamp directly and format as dd-mm-yyyy hh:mm:ss AM/PM
+                        const parseAndFormatIST = (dateString: string) => {
+                          const [datePart, timePart] = dateString.replace('.000+0000', '').split('T');
+                          const [year, month, day] = datePart.split('-');
+                          const [hour, minute, second] = timePart.split(':');
+                          
+                          const hourNum = parseInt(hour);
+                          const ampm = hourNum >= 12 ? 'PM' : 'AM';
+                          const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
+                          
+                          return `${day}-${month}-${year} ${displayHour}:${minute}:${second} ${ampm}`;
+                        };
+                        
+                        return parseAndFormatIST(timestampToShow);
                       })()}
                     </div>
                     <div className="text-muted-foreground text-sm">
@@ -692,8 +705,16 @@ export function RequestsList({
                         const reviewTime = request.adminReviewedAt || request.acceptedAt;
                         if (!reviewTime) return 'Not calculated';
                         
-                        const created = new Date(request.createdAtISO);
-                        const reviewed = new Date(reviewTime);
+                        // Use the same IST parsing logic as calculateTAT function
+                        const parseISTDate = (dateString: string) => {
+                          const [datePart, timePart] = dateString.replace('.000+0000', '').split('T');
+                          const [year, month, day] = datePart.split('-');
+                          const [hour, minute, second] = timePart.split(':');
+                          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+                        };
+
+                        const created = parseISTDate(request.createdAtISO);
+                        const reviewed = parseISTDate(reviewTime);
                         
                         if (isNaN(created.getTime()) || isNaN(reviewed.getTime())) {
                           return "Invalid date";
