@@ -298,10 +298,7 @@ export function RequestsList({
     // Get username from localStorage
     const adminUsername = localStorage.getItem('username') || 'admin';
 
-    // Add to acted requests to hide buttons
-    setActedRequests(prev => new Set([...prev, requestId]));
-
-    // Send data to backend
+    // Send data to backend and wait for response
     try {
       const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
@@ -317,39 +314,52 @@ export function RequestsList({
           AdminStatus: 'ACCEPTED'
         })
       });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const responseData = await response.json();
+      
+      // Check if response indicates failure
+      if (responseData.success === false) {
+        toast({
+          title: "Error",
+          description: responseData.message || "Failed to approve request",
+          variant: "destructive"
+        });
+        return; // Don't update UI, keep buttons visible
+      }
+
+      // Success - update UI
+      setActedRequests(prev => new Set([...prev, requestId]));
+      setRequests(prev => prev.map(req => {
+        if (req.id === requestId) {
+          const tat = calculateTAT(req.createdAtISO, acceptedAt);
+          return {
+            ...req,
+            status: "accepted" as const,
+            acceptedAt,
+            tat
+          };
+        }
+        return req;
+      }));
+      
       toast({
-        title: "Backend Updated",
-        description: `Approval sent to backend successfully.`,
+        title: "Request Accepted",
+        description: `Request ${requestId} has been accepted successfully.`,
         variant: "default"
       });
+      
     } catch (error) {
       console.error('Failed to send approval data to backend:', error);
       toast({
-        title: "Backend Error",
-        description: `Failed to send approval to backend. The request is updated locally.`,
+        title: "Network Error",
+        description: `Failed to connect to backend. Please try again.`,
         variant: "destructive"
       });
     }
-    setRequests(prev => prev.map(req => {
-      if (req.id === requestId) {
-        const tat = calculateTAT(req.createdAtISO, acceptedAt);
-        return {
-          ...req,
-          status: "accepted" as const,
-          acceptedAt,
-          tat
-        };
-      }
-      return req;
-    }));
-    toast({
-      title: "Request Accepted",
-      description: `Request ${requestId} has been accepted successfully.`,
-      variant: "default"
-    });
   };
   const handleReject = async (requestId: string) => {
     const rejectedAt = new Date().toISOString();
@@ -360,10 +370,7 @@ export function RequestsList({
     // Get username from localStorage
     const adminUsername = localStorage.getItem('username') || 'admin';
 
-    // Add to acted requests to hide buttons
-    setActedRequests(prev => new Set([...prev, requestId]));
-
-    // Send data to backend
+    // Send data to backend and wait for response
     try {
       const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
@@ -379,40 +386,52 @@ export function RequestsList({
           AdminStatus: 'REJECTED'
         })
       });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const responseData = await response.json();
+      
+      // Check if response indicates failure
+      if (responseData.success === false) {
+        toast({
+          title: "Error",
+          description: responseData.message || "Failed to reject request",
+          variant: "destructive"
+        });
+        return; // Don't update UI, keep buttons visible
+      }
+
+      // Success - update UI
+      setActedRequests(prev => new Set([...prev, requestId]));
+      setRequests(prev => prev.map(req => {
+        if (req.id === requestId) {
+          const tat = calculateTAT(req.createdAtISO, rejectedAt);
+          return {
+            ...req,
+            status: "rejected" as const,
+            acceptedAt: rejectedAt,
+            tat
+          };
+        }
+        return req;
+      }));
+      
       toast({
-        title: "Backend Updated",
-        description: `Rejection sent to backend successfully.`,
-        variant: "default"
+        title: "Request Rejected",
+        description: `Request ${requestId} has been rejected.`,
+        variant: "destructive"
       });
+      
     } catch (error) {
       console.error('Failed to send rejection data to backend:', error);
       toast({
-        title: "Backend Error",
-        description: `Failed to send rejection to backend. The request is updated locally.`,
+        title: "Network Error",
+        description: `Failed to connect to backend. Please try again.`,
         variant: "destructive"
       });
     }
-    setRequests(prev => prev.map(req => {
-      if (req.id === requestId) {
-        const tat = calculateTAT(req.createdAtISO, rejectedAt);
-        return {
-          ...req,
-          status: "rejected" as const,
-          acceptedAt: rejectedAt,
-          // Use same field for consistency
-          tat
-        };
-      }
-      return req;
-    }));
-    toast({
-      title: "Request Rejected",
-      description: `Request ${requestId} has been rejected.`,
-      variant: "destructive"
-    });
   };
   const filteredRequests = requests.filter(req => {
     const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.requester.toLowerCase().includes(searchTerm.toLowerCase()) || req.department.toLowerCase().includes(searchTerm.toLowerCase());
