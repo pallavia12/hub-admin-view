@@ -535,14 +535,6 @@ export function RequestsList({
                         <span className="text-muted-foreground text-sm">Order Qty:</span>
                         <div className="font-medium">{request.orderQty} kg</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Discount Type:</span>
-                        <div className="font-medium">{request.discountType}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Discount Value:</span>
-                        <div className="font-medium">₹{request.discountValue}</div>
-                      </div>
                     </div>
 
                     {/* Right Column */}
@@ -550,6 +542,14 @@ export function RequestsList({
                       <div>
                         <span className="text-muted-foreground text-sm">Contact Number:</span>
                         <div className="font-medium">{request.contactNumber}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Discount Type:</span>
+                        <div className="font-medium">{request.discountType}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Discount Value:</span>
+                        <div className="font-medium">₹{request.discountValue}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground text-sm">Requested Date & Time:</span>
