@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Check, X, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
 interface ApiRequest {
   requestId: number;
   customerName: string;
@@ -40,7 +39,6 @@ interface ApiRequest {
   adminReviewedBy: number | null;
   adminStatus: string | null;
 }
-
 interface Request {
   id: string;
   title: string;
@@ -78,7 +76,6 @@ interface Request {
   adminReviewedAt?: string | null;
   adminStatus?: string | null;
 }
-
 interface ApiResponse {
   success: boolean;
   code: string | null;
@@ -87,12 +84,10 @@ interface ApiResponse {
   requestId: string;
   data: ApiRequest[];
 }
-
 interface RequestsListProps {
   showActions?: boolean;
   limit?: number;
 }
-
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -197,7 +192,6 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     adminStatus: apiRequest.adminStatus
   };
 };
-
 export function RequestsList({
   showActions = true,
   limit
@@ -208,8 +202,9 @@ export function RequestsList({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [actedRequests, setActedRequests] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     const fetchRequests = async () => {
       try {
@@ -277,7 +272,6 @@ export function RequestsList({
     };
     fetchRequests();
   }, [toast]);
-
   const calculateTAT = (createdAtISO: string, acceptedAt: string) => {
     const created = new Date(createdAtISO);
     const accepted = new Date(acceptedAt);
@@ -295,45 +289,6 @@ export function RequestsList({
     const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
     return `${days} days, ${hours} hours, ${minutes} minutes`;
   };
-
-  const formatTimestamp = (timestamp: string) => {
-    if (!timestamp) return 'Invalid Date';
-    
-    const date = new Date(timestamp);
-    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
-  };
-
-  const calculateTATForRequest = (request: Request) => {
-    // Calculate TAT using admin review time if available
-    const reviewTime = request.adminReviewedAt || request.acceptedAt;
-    if (!reviewTime) return 'Not calculated';
-    
-    const created = new Date(request.createdAtISO);
-    const reviewed = new Date(reviewTime);
-    
-    if (isNaN(created.getTime()) || isNaN(reviewed.getTime())) {
-      return "Invalid date";
-    }
-    
-    const diffMs = reviewed.getTime() - created.getTime();
-    if (diffMs < 0) {
-      return "Invalid time range";
-    }
-    
-    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
-    const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
-    return `${days} days, ${hours} hours, ${minutes} minutes`;
-  };
-
   const handleApprove = async (requestId: string) => {
     const acceptedAt = new Date().toISOString();
     // Convert to IST format
@@ -396,7 +351,6 @@ export function RequestsList({
       variant: "default"
     });
   };
-
   const handleReject = async (requestId: string) => {
     const rejectedAt = new Date().toISOString();
     // Convert to IST format
@@ -460,13 +414,11 @@ export function RequestsList({
       variant: "destructive"
     });
   };
-
   const filteredRequests = requests.filter(req => {
     const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.requester.toLowerCase().includes(searchTerm.toLowerCase()) || req.department.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || req.status === statusFilter;
     return matchesSearch && matchesStatus;
   }).slice(0, limit);
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -483,7 +435,6 @@ export function RequestsList({
         return "bg-muted text-muted-foreground";
     }
   };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
@@ -496,23 +447,15 @@ export function RequestsList({
         return "bg-muted text-muted-foreground";
     }
   };
-
-  return (
-    <Card>
+  return <Card>
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Approval Requests</CardTitle>
           
-          {showActions && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {showActions && <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input 
-                  placeholder="Search requests..." 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="pl-10 w-64" 
-                />
+                <Input placeholder="Search requests..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-64" />
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -528,150 +471,180 @@ export function RequestsList({
                   <SelectItem value="escalated">Escalated</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          )}
+            </div>}
         </div>
       </CardHeader>
       
       <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
+        {loading ? <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Loading requests...</span>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
+          </div> : error ? <div className="text-center py-8">
             <p className="text-destructive">{error}</p>
             <Button variant="outline" onClick={() => window.location.reload()} className="mt-4">
               Retry
             </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredRequests.map(request => (
-              <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
-                {/* Header with checkbox, ID and eligible badge */}
-                <div className="flex items-start justify-between mb-4 gap-3">
-                  <div className="flex items-center gap-3">
-                    <input type="checkbox" className="w-4 h-4 rounded border border-border flex-shrink-0 mt-1" />
-                    <span className="text-2xl font-bold text-foreground">{request.id.replace('REQ-', '')}</span>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    {request.eligible === 1 ? (
-                      <Badge className="bg-green-500 text-white px-3 py-1 text-sm font-medium rounded-full">
-                        Eligible
+          </div> : <div className="space-y-4">
+            {filteredRequests.map(request => <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
+              {/* Header with checkbox, ID and eligible badge */}
+              <div className="flex items-start justify-between mb-4 gap-3">
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" className="w-4 h-4 rounded border border-border flex-shrink-0 mt-1" />
+                  <span className="text-2xl font-bold text-foreground">{request.id.replace('REQ-', '')}</span>
+                </div>
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  {request.eligible === 1 ? <Badge className="bg-green-500 text-white px-3 py-1 text-sm font-medium rounded-full">
+                      Eligible
+                    </Badge> : <>
+                      <Badge className="bg-red-500 text-white px-3 py-1 text-sm font-medium rounded-full">
+                        Not Eligible
                       </Badge>
-                    ) : (
-                      <>
-                        <Badge className="bg-red-500 text-white px-3 py-1 text-sm font-medium rounded-full">
-                          Not Eligible
-                        </Badge>
-                        <span className="text-xs text-gray-500 text-right max-w-[150px]">{request.eligibilityReason}</span>
-                      </>
-                    )}
-                  </div>
+                      <span className="text-gray-500 text-sm text-right max-w-[160px] leading-tight mt-1">
+                        {request.eligibilityReason}
+                      </span>
+                    </>}
                 </div>
-
-                {/* Main content */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* Left Column */}
-                    <div className="space-y-2">
-                      <div>
-                        <span className="text-muted-foreground text-sm">Customer Name:</span>
-                        <div className="font-medium">{request.requester}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Campaign Type:</span>
-                        <div className="font-medium">{request.campaignType}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">SKU Name:</span>
-                        <div className="font-medium">{request.skuName || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Order Qty:</span>
-                        <div className="font-medium">{request.orderQty} kg</div>
-                      </div>
-                    </div>
-
-                    {/* Right Column */}
-                    <div className="space-y-2">
-                      <div>
-                        <span className="text-muted-foreground text-sm">Contact Number:</span>
-                        <div className="font-medium">{request.contactNumber}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Discount Type:</span>
-                        <div className="font-medium">{request.discountType}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Discount Value:</span>
-                        <div className="font-medium">₹{request.discountValue}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Requested Date & Time:</span>
-                        <div className="font-medium">{request.requestedDate} {request.requestedTime}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status and Priority */}
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
-                    <Badge className={getStatusColor(request.status)}>
-                      {request.adminStatus || request.status.toUpperCase()}
-                    </Badge>
-                    <Badge className={getPriorityColor(request.priority)}>
-                      {request.priority.toUpperCase()}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Escalated By and Escalated At - Show when status is escalated, approved, accepted, rejected, or modified */}
-                {(request.status === "escalated" || request.status === "approved" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <div className="text-muted-foreground text-sm">Escalated By:</div>
-                    <div className="text-gray-500 text-sm">{request.abmUserName}</div>
-                    <div className="text-gray-500 text-sm">{request.escalatedAt} {request.escalatedAtTime}</div>
-                  </div>
-                )}
-
-                {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
-                {showActions && !actedRequests.has(request.id) && !(request.adminReviewedAt || request.acceptedAt) && (
-                  <div className="flex items-center gap-3 pt-4 border-t border-border">
-                    <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
-                      Accept
-                    </Button>
-                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
-                      Reject
-                    </Button>
-                  </div>
-                )}
-
-                {/* Status badge for approved/rejected/accepted requests */}
-                {(request.status === "accepted" || request.status === "rejected") && (request.acceptedAt || request.adminReviewedAt) && (
-                  <div className="pt-4 border-t border-border">
-                    <div className="text-foreground font-semibold">
-                      {request.adminStatus || request.status.toUpperCase()} {formatTimestamp(request.adminReviewedAt || request.acceptedAt!)}
-                    </div>
-                    <div className="text-muted-foreground text-sm">
-                      TAT: {calculateTATForRequest(request)}
-                    </div>
-                  </div>
-                )}
               </div>
-            ))}
-          
-            {filteredRequests.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No requests found matching your criteria.
+
+              {/* ABM Status - Clean and prominent display */}
+              {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED" || request.abmStatus === "ESCALATED") && <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium text-gray-600">ABM Decision</div>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : request.abmStatus === "ESCALATED" ? "bg-orange-500 text-white" : "bg-yellow-500 text-white"}`}>
+                      {request.abmStatus}
+                    </div>
+                    {request.abmRemarks && request.abmRemarks.trim() !== "" && request.abmRemarks !== "null" && <div className="text-sm text-gray-600 ml-2">
+                        <span className="font-medium">Remarks:</span> {request.abmRemarks}
+                      </div>}
+                  </div>
+                </div>}
+
+              {/* Customer Section */}
+              <div className="mb-4">
+                <div className="text-gray-500 text-sm font-medium mb-1">Customer</div>
+                <div className="text-foreground font-semibold text-lg">
+                  {request.requester} ({request.customerId})
+                </div>
+                <div className="text-gray-500 text-base">{request.contactNumber}</div>
+              </div>
+
+              {/* Campaign and Order Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-gray-500 text-sm font-medium mb-1">Campaign</div>
+                  <div className="text-foreground text-base font-medium">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
+                  {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && <div className="text-gray-500 text-sm mt-1">
+                      SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
+                    </div>}
+                </div>
+                <div>
+                  <div className="text-gray-500 text-sm font-medium mb-1">Order</div>
+                  <div className="text-foreground text-base font-medium">{request.orderQty} kg</div>
+                  <div className="text-gray-500 text-sm">
+                    {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Discount Section */}
+              <div className="mb-4">
+                <div className="text-gray-500 text-sm font-medium mb-1">Discount</div>
+                <div className="text-foreground text-base font-medium">
+                  {request.discountValue > 0 ? `${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
+                </div>
+              </div>
+
+              {/* Requested By and Date Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-gray-500 text-sm font-medium mb-1">Requested By</div>
+                  <div className="text-foreground text-base font-medium">{request.department.replace('Requested by: ', '')}</div>
+                  <div className="text-gray-500 text-sm">{request.requestedByContact}</div>
+                  
+                   {/* Escalated By Section - Show for escalated, accepted, rejected, and modified requests */}
+                    {request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED" ? <div className="mt-3">
+                       <div className="text-gray-500 text-sm font-medium mb-1">Escalated By</div>
+                       <div className="text-foreground text-base font-medium">{request.abmUserName} (ID: {request.abmId})</div>
+                       <div className="text-gray-500 text-sm">{request.abmContactNumber}</div>
+                     </div> : null}
+                </div>
+                <div>
+                  <div className="text-gray-500 text-sm font-medium mb-1">Requested Date</div>
+                  <div className="text-foreground text-base font-medium">{request.requestedDate}</div>
+                  <div className="text-gray-500 text-sm">{request.requestedTime}</div>
+                  
+                  {/* Escalated At Section - Show for escalated, accepted, rejected, and modified requests */}
+                  {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && <div className="mt-3">
+                      <div className="text-gray-500 text-sm font-medium mb-1">Escalated At</div>
+                      <div className="text-foreground text-base font-medium">{request.escalatedAt}</div>
+                      <div className="text-gray-500 text-sm">{request.escalatedAtTime}</div>
+                    </div>}
+                </div>
+              </div>
+
+              {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
+              {showActions && !actedRequests.has(request.id) && <div className="flex items-center gap-3 pt-4 border-t border-border">
+                  <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
+                    Accept
+                  </Button>
+                  <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
+                    Reject
+                  </Button>
+                </div>}
+
+              {/* Status badge for approved/rejected/accepted requests */}
+              {(request.status === "accepted" || request.status === "rejected") && (request.acceptedAt || request.adminReviewedAt) && <div className="pt-4 border-t border-border">
+                  <div className="text-foreground font-semibold">
+                    {request.status.toUpperCase()} {(() => {
+                      // Use admin reviewed timestamp if available, otherwise use acceptedAt
+                      const timestampToShow = request.adminReviewedAt || request.acceptedAt;
+                      if (!timestampToShow) return 'Invalid Date';
+                      
+                      const date = new Date(timestampToShow);
+                      return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      }).replace(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1 $4:$5:$6');
+                    })()}
+                  </div>
+                  <div className="text-muted-foreground text-sm">
+                    TAT: {(() => {
+                      // Calculate TAT using admin review time if available
+                      const reviewTime = request.adminReviewedAt || request.acceptedAt;
+                      if (!reviewTime) return 'Not calculated';
+                      
+                      const created = new Date(request.createdAtISO);
+                      const reviewed = new Date(reviewTime);
+                      
+                      if (isNaN(created.getTime()) || isNaN(reviewed.getTime())) {
+                        return "Invalid date";
+                      }
+                      
+                      const diffMs = reviewed.getTime() - created.getTime();
+                      if (diffMs < 0) {
+                        return "Invalid time range";
+                      }
+                      
+                      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
+                      const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
+                      return `${days} days, ${hours} hours, ${minutes} minutes`;
+                    })()}
+                  </div>
+                </div>}
               </div>
             )}
-          </div>
-        )}
+          
+            {filteredRequests.length === 0 && <div className="text-center py-8 text-muted-foreground">
+                No requests found matching your criteria.
+              </div>}
+          </div>}
       </CardContent>
     </Card>
   );
 }
-
-export default RequestsList;
