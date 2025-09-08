@@ -492,24 +492,24 @@ export function RequestsList({
         ) : (
           <div className="space-y-4">
             {filteredRequests.map(request => (
-              <div key={request.id} className="border border-border rounded-lg py-3 px-4 transition-colors hover:bg-accent/50">
+              <div key={request.id} className="border border-border rounded-lg py-2 px-3 transition-colors hover:bg-accent/50">
                 {/* Header with checkbox, ID and eligible badge */}
-                <div className="flex items-start justify-between mb-4 gap-3">
-                  <div className="flex items-center gap-3">
-                    <input type="checkbox" className="w-4 h-4 rounded border border-border flex-shrink-0 mt-1" />
-                    <span className="text-2xl font-bold text-foreground">{request.id.replace('REQ-', '')}</span>
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" className="w-4 h-4 rounded border border-border flex-shrink-0 mt-0.5" />
+                    <span className="text-xl font-bold text-foreground">{request.id.replace('REQ-', '')}</span>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                     {request.eligible === 1 ? (
-                      <Badge className="bg-green-500 text-white px-3 py-1 text-sm font-medium rounded-full">
+                      <Badge className="bg-green-500 text-white px-2 py-0.5 text-xs font-medium rounded-full">
                         Eligible
                       </Badge>
                     ) : (
                       <>
-                        <Badge className="bg-red-500 text-white px-3 py-1 text-sm font-medium rounded-full">
+                        <Badge className="bg-red-500 text-white px-2 py-0.5 text-xs font-medium rounded-full">
                           Not Eligible
                         </Badge>
-                        <span className="text-gray-500 text-sm text-right max-w-[160px] leading-tight mt-1">
+                        <span className="text-gray-500 text-xs text-right max-w-[160px] leading-tight">
                           {request.eligibilityReason}
                         </span>
                       </>
@@ -519,14 +519,14 @@ export function RequestsList({
 
                 {/* ABM Status - Clean and prominent display */}
                 {(request.abmStatus === "ACCEPTED" || request.abmStatus === "MODIFIED" || request.abmStatus === "ESCALATED") && (
-                  <div className="mb-4 p-3 rounded-lg border-l-4 border-l-primary bg-primary/5">
+                  <div className="mb-2 p-2 rounded-lg border-l-3 border-l-primary bg-primary/5">
                     <div className="flex items-center gap-2">
-                      <div className="text-sm font-medium text-gray-600">ABM Decision</div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : request.abmStatus === "ESCALATED" ? "bg-orange-500 text-white" : "bg-yellow-500 text-white"}`}>
+                      <div className="text-xs font-medium text-gray-600">ABM Decision</div>
+                      <div className={`px-2 py-0.5 rounded-full text-xs font-medium ${request.abmStatus === "ACCEPTED" ? "bg-green-500 text-white" : request.abmStatus === "ESCALATED" ? "bg-orange-500 text-white" : "bg-yellow-500 text-white"}`}>
                         {request.abmStatus}
                       </div>
                       {request.abmRemarks && request.abmRemarks.trim() !== "" && request.abmRemarks !== "null" && (
-                        <div className="text-sm text-gray-600 ml-2">
+                        <div className="text-xs text-gray-600 ml-1">
                           <span className="font-medium">Remarks:</span> {request.abmRemarks}
                         </div>
                       )}
@@ -535,69 +535,69 @@ export function RequestsList({
                 )}
 
                 {/* Customer Section */}
-                <div className="mb-4">
-                  <div className="text-gray-500 text-sm font-medium mb-1">Customer</div>
-                  <div className="text-foreground font-semibold text-lg">
+                <div className="mb-2">
+                  <div className="text-gray-500 text-xs font-medium mb-0.5">Customer</div>
+                  <div className="text-foreground font-semibold text-base">
                     {request.requester} ({request.customerId})
                   </div>
-                  <div className="text-gray-500 text-base">{request.contactNumber}</div>
+                  <div className="text-gray-500 text-sm">{request.contactNumber}</div>
                 </div>
 
                 {/* Campaign and Order Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-2">
                   <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Campaign</div>
-                    <div className="text-foreground text-base font-medium">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
+                    <div className="text-gray-500 text-xs font-medium mb-0.5">Campaign</div>
+                    <div className="text-foreground text-sm font-medium">{request.campaignType.toLowerCase().replace('_', ' ')}</div>
                     {request.campaignType.toLowerCase() === 'sku promotion' && request.skuName && (
-                      <div className="text-gray-500 text-sm mt-1">
+                      <div className="text-gray-500 text-xs mt-0.5">
                         SKU: {request.skuName} {request.skuId && `(ID: ${request.skuId})`}
                       </div>
                     )}
                   </div>
                   <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Order</div>
-                    <div className="text-foreground text-base font-medium">{request.orderQty} kg</div>
-                    <div className="text-gray-500 text-sm">
+                    <div className="text-gray-500 text-xs font-medium mb-0.5">Order</div>
+                    <div className="text-foreground text-sm font-medium">{request.orderQty} kg</div>
+                    <div className="text-gray-500 text-xs">
                       {request.orderMode === 1 ? 'Delivery' : request.orderMode === 2 ? 'Pickup' : 'Delivery'}
                     </div>
                   </div>
                 </div>
 
                 {/* Discount Section */}
-                <div className="mb-4">
-                  <div className="text-gray-500 text-sm font-medium mb-1">Discount</div>
-                  <div className="text-foreground text-base font-medium">
+                <div className="mb-2">
+                  <div className="text-gray-500 text-xs font-medium mb-0.5">Discount</div>
+                  <div className="text-foreground text-sm font-medium">
                     {request.discountValue > 0 ? `${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
                   </div>
                 </div>
 
                 {/* Requested By and Date Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-2">
                   <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Requested By</div>
-                    <div className="text-foreground text-base font-medium">{request.department.replace('Requested by: ', '')}</div>
-                    <div className="text-gray-500 text-sm">{request.requestedByContact}</div>
+                    <div className="text-gray-500 text-xs font-medium mb-0.5">Requested By</div>
+                    <div className="text-foreground text-sm font-medium">{request.department.replace('Requested by: ', '')}</div>
+                    <div className="text-gray-500 text-xs">{request.requestedByContact}</div>
                     
                     {/* Escalated By Section - Show for escalated, accepted, rejected, and modified requests */}
                     {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && (
-                      <div className="mt-3">
-                        <div className="text-gray-500 text-sm font-medium mb-1">Escalated By</div>
-                        <div className="text-foreground text-base font-medium">{request.abmUserName} (ID: {request.abmId})</div>
-                        <div className="text-gray-500 text-sm">{request.abmContactNumber}</div>
+                      <div className="mt-1.5">
+                        <div className="text-gray-500 text-xs font-medium mb-0.5">Escalated By</div>
+                        <div className="text-foreground text-sm font-medium">{request.abmUserName} (ID: {request.abmId})</div>
+                        <div className="text-gray-500 text-xs">{request.abmContactNumber}</div>
                       </div>
                     )}
                   </div>
                   <div>
-                    <div className="text-gray-500 text-sm font-medium mb-1">Requested Date</div>
-                    <div className="text-foreground text-base font-medium">{request.requestedDate}</div>
-                    <div className="text-gray-500 text-sm">{request.requestedTime}</div>
+                    <div className="text-gray-500 text-xs font-medium mb-0.5">Requested Date</div>
+                    <div className="text-foreground text-sm font-medium">{request.requestedDate}</div>
+                    <div className="text-gray-500 text-xs">{request.requestedTime}</div>
                     
                     {/* Escalated At Section - Show for escalated, accepted, rejected, and modified requests */}
                     {(request.status === "escalated" || request.status === "accepted" || request.status === "rejected" || request.abmStatus === "MODIFIED") && (
-                      <div className="mt-3">
-                        <div className="text-gray-500 text-sm font-medium mb-1">Escalated At</div>
-                        <div className="text-foreground text-base font-medium">{request.escalatedAt}</div>
-                        <div className="text-gray-500 text-sm">{request.escalatedAtTime}</div>
+                      <div className="mt-1.5">
+                        <div className="text-gray-500 text-xs font-medium mb-0.5">Escalated At</div>
+                        <div className="text-foreground text-sm font-medium">{request.escalatedAt}</div>
+                        <div className="text-gray-500 text-xs">{request.escalatedAtTime}</div>
                       </div>
                     )}
                   </div>
