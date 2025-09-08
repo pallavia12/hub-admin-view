@@ -101,6 +101,16 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     };
   };
 
+  const formatISTDateTime = (dateString: string) => {
+    // Return the raw IST string as-is, just format for display
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString(),
+      raw: dateString // Keep raw value for IST display
+    };
+  };
+
   // Check if admin fields are available
   const hasAdminAction = apiRequest.adminStatus !== null && apiRequest.adminStatus !== undefined;
   
@@ -147,18 +157,16 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== "" ? apiRequest.abmDiscountType : apiRequest.discountType;
 
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
-  const dateTime = formatDateTime(apiRequest.createdAt);
+  const dateTime = formatISTDateTime(apiRequest.createdAt);
   
-  // Use admin review time if available, otherwise use ABM review time
-  const reviewDateTime = hasAdminAction && apiRequest.adminReviewedAt 
-    ? formatDateTime(apiRequest.adminReviewedAt) 
-    : formatDateTime(apiRequest.abmReviewedAt);
+  // Always use ABM review time for escalated timestamp (IST)
+  const reviewDateTime = formatISTDateTime(apiRequest.abmReviewedAt);
 
   return {
     id: `REQ-${apiRequest.requestId}`,
     title: `${apiRequest.campaignType} - ${safeSkuName}`,
     requester: apiRequest.customerName,
-    department: `Requested by: ${apiRequest.requestedByUserName}`,
+    department: `Requested by: ${apiRequest.requestedByUserName} (ID: ${apiRequest.requestedBy})`,
     status: getStatus(apiRequest.abmStatus, apiRequest.adminStatus),
     priority: getPriority(apiRequest.eligible, finalDiscountValue),
     createdAt: formatDate(apiRequest.createdAt),
@@ -586,7 +594,7 @@ export function RequestsList({
                 <div className="mb-2">
                   <div className="text-gray-500 text-xs font-medium mb-0.5">Discount</div>
                   <div className="text-foreground text-sm font-medium">
-                    {request.discountValue > 0 ? `${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
+                    {request.discountValue > 0 ? `₹${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
                   </div>
                 </div>
 
@@ -607,7 +615,7 @@ export function RequestsList({
                     )}
                   </div>
                   <div>
-                    <div className="text-gray-500 text-xs font-medium mb-0.5">Requested Date</div>
+                    <div className="text-gray-500 text-xs font-medium mb-0.5">Requested At</div>
                     <div className="text-foreground text-sm font-medium">{request.requestedDate}</div>
                     <div className="text-gray-500 text-xs">{request.requestedTime}</div>
                     
@@ -622,7 +630,7 @@ export function RequestsList({
                   </div>
                 </div>
                 {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
-                {showActions && !actedRequests.has(request.id) && (
+                {showActions && !actedRequests.has(request.id) && !request.adminStatus && (
                   <div className="flex items-center gap-3 pt-4 border-t border-border">
                     <Button variant="default" onClick={() => handleApprove(request.id)} className="flex py-3 text-base font-medium">
                       Accept
