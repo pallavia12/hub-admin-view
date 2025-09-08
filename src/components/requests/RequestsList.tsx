@@ -492,7 +492,7 @@ export function RequestsList({
         ) : (
           <div className="space-y-4">
             {filteredRequests.map(request => (
-              <div key={request.id} className="border border-border rounded-lg p-4 transition-colors hover:bg-accent/50">
+              <div key={request.id} className="border border-border rounded-lg py-3 px-4 transition-colors hover:bg-accent/50">
                 {/* Header with checkbox, ID and eligible badge */}
                 <div className="flex items-start justify-between mb-4 gap-3">
                   <div className="flex items-center gap-3">
