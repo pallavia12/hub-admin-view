@@ -605,10 +605,10 @@ export function RequestsList({
                 {/* Action Buttons - Show for all requests that haven't been acted upon by admin */}
                 {showActions && !actedRequests.has(request.id) && (
                   <div className="flex items-center gap-3 pt-4 border-t border-border">
-                    <Button variant="default" onClick={() => handleApprove(request.id)} className="flex-1 py-3 text-base font-medium">
+                    <Button variant="default" onClick={() => handleApprove(request.id)} className="flex py-3 text-base font-medium">
                       Accept
                     </Button>
-                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex-1 py-3 text-base font-medium">
+                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex py-3 text-base font-medium">
                       Reject
                     </Button>
                   </div>
