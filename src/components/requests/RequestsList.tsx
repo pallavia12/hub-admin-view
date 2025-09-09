@@ -693,43 +693,14 @@ export function RequestsList({
                           const ampm = hourNum >= 12 ? 'PM' : 'AM';
                           const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
                           
-                          return `${day}-${month}-${year} ${displayHour}:${minute}:${second} ${ampm}`;
+                          return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${year} ${displayHour}:${minute.padStart(2, '0')}:${second.padStart(2, '0')} ${ampm}`;
                         };
                         
                         return parseAndFormatIST(timestampToShow);
                       })()}
                     </div>
                     <div className="text-muted-foreground text-sm">
-                      TAT: {(() => {
-                        // Calculate TAT using admin review time if available
-                        const reviewTime = request.adminReviewedAt || request.acceptedAt;
-                        if (!reviewTime) return 'Not calculated';
-                        
-                        // Use the same IST parsing logic as calculateTAT function
-                        const parseISTDate = (dateString: string) => {
-                          const [datePart, timePart] = dateString.replace('.000+0000', '').split('T');
-                          const [year, month, day] = datePart.split('-');
-                          const [hour, minute, second] = timePart.split(':');
-                          return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
-                        };
-
-                        const created = parseISTDate(request.createdAtISO);
-                        const reviewed = parseISTDate(reviewTime);
-                        
-                        if (isNaN(created.getTime()) || isNaN(reviewed.getTime())) {
-                          return "Invalid date";
-                        }
-                        
-                        const diffMs = reviewed.getTime() - created.getTime();
-                        if (diffMs < 0) {
-                          return "Invalid time range";
-                        }
-                        
-                        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
-                        const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
-                        return `${days} days, ${hours} hours, ${minutes} minutes`;
-                      })()}
+                      TAT: {calculateTAT(request.createdAtISO, request.adminReviewedAt || request.acceptedAt || '')}
                     </div>
                   </div>
                 )}
