@@ -30,15 +30,26 @@ export function ModifyRequestDialog({
   const [isCustomSelected, setIsCustomSelected] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Reset form when dialog opens
+  // Pre-fill form with current values when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setDiscountType("");
-      setDiscountValue("");
-      setIsCustomSelected(false);
+      setDiscountType(currentDiscountType);
+      setIsCustomSelected(currentDiscountType === "Custom");
+      
+      // Calculate and set discount value based on type
+      if (currentDiscountType === "Re 1 per kg") {
+        setDiscountValue(orderQty.toString());
+      } else if (currentDiscountType === "Rs 0.75 per kg") {
+        setDiscountValue((orderQty * 0.75).toString());
+      } else if (currentDiscountType === "Custom") {
+        setDiscountValue(currentDiscountValue.toString());
+      } else {
+        setDiscountValue("");
+      }
+      
       setHasChanges(false);
     }
-  }, [isOpen]);
+  }, [isOpen, currentDiscountType, currentDiscountValue, orderQty]);
 
   // Check for changes whenever form values change
   useEffect(() => {
@@ -50,7 +61,13 @@ export function ModifyRequestDialog({
   const handleDiscountTypeChange = (value: string) => {
     setDiscountType(value);
     setIsCustomSelected(value === "Custom");
-    if (value !== "Custom") {
+    
+    // Calculate and set discount value based on type
+    if (value === "Re 1 per kg") {
+      setDiscountValue(orderQty.toString());
+    } else if (value === "Rs 0.75 per kg") {
+      setDiscountValue((orderQty * 0.75).toString());
+    } else if (value === "Custom") {
       setDiscountValue("");
     }
   };
@@ -93,9 +110,9 @@ export function ModifyRequestDialog({
           </Button>
         </DialogHeader>
 
-        <div className="space-y-6 pt-2">
+        <div className="space-y-4 pt-2">
           {/* Discount Type */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="discount-type" className="text-sm font-medium">
               Discount Type
             </Label>
@@ -112,7 +129,7 @@ export function ModifyRequestDialog({
           </div>
 
           {/* Discount Value */}
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="discount-value" className="text-sm font-medium">
               Discount Value
             </Label>
@@ -122,20 +139,14 @@ export function ModifyRequestDialog({
               placeholder="Enter discount value"
               value={discountValue}
               onChange={(e) => setDiscountValue(e.target.value)}
-              disabled={!isCustomSelected}
-              className={!isCustomSelected ? "bg-muted" : ""}
+              readOnly={!isCustomSelected}
+              className={!isCustomSelected ? "bg-muted cursor-default" : ""}
             />
-            {!isCustomSelected && discountType && (
-              <p className="text-xs text-muted-foreground">
-                {discountType === "Re 1 per kg" && `Will be set to ${orderQty} (Order Qty)`}
-                {discountType === "Rs 0.75 per kg" && `Will be set to ${(orderQty * 0.75).toFixed(2)} (Order Qty × 0.75)`}
-              </p>
-            )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-6">
+        <div className="flex justify-end gap-3 pt-4">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>

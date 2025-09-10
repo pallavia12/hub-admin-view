@@ -590,14 +590,11 @@ export function RequestsList({
     } else {
       // Default: pending actions first, then by latest request ID
       filtered.sort((a, b) => {
-        // First, prioritize pending requests
-        const aIsPending = a.status === "pending";
-        const bIsPending = b.status === "pending";
+        // Primary sort: Unprocessed admin requests first (adminStatus === null)
+        if (a.adminStatus === null && b.adminStatus !== null) return -1;
+        if (a.adminStatus !== null && b.adminStatus === null) return 1;
         
-        if (aIsPending && !bIsPending) return -1;
-        if (!aIsPending && bIsPending) return 1;
-        
-        // Then sort by request ID (latest first) - extract numeric part for proper sorting
+        // Secondary sort: By request ID (latest first) - extract numeric part for proper sorting
         const aIdNum = parseInt((a.id || '').replace('REQ-', '')) || 0;
         const bIdNum = parseInt((b.id || '').replace('REQ-', '')) || 0;
         return bIdNum - aIdNum;
