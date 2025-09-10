@@ -240,6 +240,7 @@ export function RequestsList({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [actedRequests, setActedRequests] = useState<Set<string>>(new Set());
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const {
     toast
   } = useToast();
@@ -605,14 +606,15 @@ export function RequestsList({
                   <div className="text-gray-500 text-xs font-medium mb-0.5">Customer</div>
                   <div className="flex items-center gap-3">
                     {request.shopImage && (
-                      <img 
-                        src={request.shopImage} 
-                        alt="Shop" 
-                        className="w-8 h-8 rounded object-cover flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
+                       <img 
+                         src={request.shopImage} 
+                         alt="Shop" 
+                         className="w-12 h-12 rounded object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                         onError={(e) => {
+                           e.currentTarget.style.display = 'none';
+                         }}
+                         onClick={() => setSelectedImage(request.shopImage)}
+                       />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="text-foreground font-semibold text-base">
@@ -737,6 +739,29 @@ export function RequestsList({
           </div>
         )}
       </CardContent>
+
+      {/* Image Overlay */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-3xl max-h-[90vh] p-4">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={selectedImage}
+              alt="Shop Image"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
