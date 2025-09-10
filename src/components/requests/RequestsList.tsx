@@ -353,7 +353,7 @@ export function RequestsList({
 
     // Send data to backend and wait for response
     try {
-      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -425,7 +425,7 @@ export function RequestsList({
 
     // Send data to backend and wait for response
     try {
-      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -590,14 +590,11 @@ export function RequestsList({
     } else {
       // Default: pending actions first, then by latest request ID
       filtered.sort((a, b) => {
-        // First, prioritize pending requests
-        const aIsPending = a.status === "pending";
-        const bIsPending = b.status === "pending";
+        // Primary sort: Unprocessed admin requests first (adminStatus === null)
+        if (a.adminStatus === null && b.adminStatus !== null) return -1;
+        if (a.adminStatus !== null && b.adminStatus === null) return 1;
         
-        if (aIsPending && !bIsPending) return -1;
-        if (!aIsPending && bIsPending) return 1;
-        
-        // Then sort by request ID (latest first) - extract numeric part for proper sorting
+        // Secondary sort: By request ID (latest first) - extract numeric part for proper sorting
         const aIdNum = parseInt((a.id || '').replace('REQ-', '')) || 0;
         const bIdNum = parseInt((b.id || '').replace('REQ-', '')) || 0;
         return bIdNum - aIdNum;
@@ -660,13 +657,18 @@ export function RequestsList({
                 </SelectContent>
               </Select>
               
-              <Button
-                variant="outline"
-                onClick={() => setSortByCustomerId(!sortByCustomerId)}
-                className="whitespace-nowrap"
+              <Select
+                value={sortByCustomerId ? "customerId" : "default"}
+                onValueChange={(value) => setSortByCustomerId(value === "customerId")}
               >
-                {sortByCustomerId ? "Default Sort" : "Sort by Customer ID"}
-              </Button>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default</SelectItem>
+                  <SelectItem value="customerId">Customer ID</SelectItem>
+                </SelectContent>
+              </Select>
             </div>}
         </div>
       </CardHeader>
