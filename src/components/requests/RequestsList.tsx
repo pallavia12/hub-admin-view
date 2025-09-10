@@ -38,6 +38,8 @@ interface ApiRequest {
   adminReviewedAt: string | null;
   adminReviewedBy: number | null;
   adminStatus: string | null;
+  CustomerTypeName: string;
+  ShopImage: string;
 }
 interface Request {
   id: string;
@@ -75,6 +77,8 @@ interface Request {
   abmStatus: string;
   adminReviewedAt?: string | null;
   adminStatus?: string | null;
+  customerTypeName: string;
+  shopImage: string;
 }
 interface ApiResponse {
   success: boolean;
@@ -221,7 +225,9 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     abmStatus: apiRequest.abmStatus,
     // Store admin fields for TAT calculation
     adminReviewedAt: apiRequest.adminReviewedAt,
-    adminStatus: apiRequest.adminStatus
+    adminStatus: apiRequest.adminStatus,
+    customerTypeName: apiRequest.CustomerTypeName,
+    shopImage: apiRequest.ShopImage
   };
 };
 export function RequestsList({
@@ -597,10 +603,26 @@ export function RequestsList({
                 {/* Customer Section */}
                 <div className="mb-2">
                   <div className="text-gray-500 text-xs font-medium mb-0.5">Customer</div>
-                  <div className="text-foreground font-semibold text-base">
-                    {request.requester} ({request.customerId})
+                  <div className="flex items-center gap-3">
+                    {request.shopImage && (
+                      <img 
+                        src={request.shopImage} 
+                        alt="Shop" 
+                        className="w-8 h-8 rounded object-cover flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-foreground font-semibold text-base">
+                        {request.requester} ({request.customerId})
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        {request.contactNumber} • {request.customerTypeName}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-gray-500 text-sm">{request.contactNumber}</div>
                 </div>
 
                 {/* Campaign and Order Grid */}
