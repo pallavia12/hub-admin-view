@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Check, X, Eye, Loader2 } from "lucide-react";
+import { Search, Check, X, Eye, Loader2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ModifyRequestDialog } from "./ModifyRequestDialog";
 interface ApiRequest {
   requestId: number;
   customerName: string;
@@ -242,6 +243,9 @@ export function RequestsList({
   const [actedRequests, setActedRequests] = useState<Set<string>>(new Set());
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [sortByCustomerId, setSortByCustomerId] = useState(false);
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [modifiedRequests, setModifiedRequests] = useState<Map<string, { discountType: string; discountValue: number }>>(new Map());
   const {
     toast
   } = useToast();
@@ -482,6 +486,93 @@ export function RequestsList({
       });
     }
   };
+
+  const handleModify = (request: Request) => {
+    setSelectedRequest(request);
+    setModifyDialogOpen(true);
+  };
+
+  const handleModifyConfirm = async (discountType: string, discountValue: number) => {
+    if (!selectedRequest) return;
+
+    const modifiedAt = new Date().toISOString();
+    // Convert to IST format
+    const istDate = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000);
+    const adminReviewedAt = istDate.toISOString().replace('T', ' ').substring(0, 19);
+
+    // Get username from localStorage
+    const adminUsername = localStorage.getItem('username') || 'admin';
+
+    try {
+      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        mode: 'cors',
+        body: JSON.stringify({
+          RequestId: selectedRequest.id.replace('REQ-', ''),
+          AdminUsername: adminUsername,
+          AdminReviewedAt: adminReviewedAt,
+          AdminStatus: 'MODIFIED',
+          adminDiscountType: discountType,
+          adminDiscountValue: discountValue
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      
+      // Check if response indicates failure
+      if (responseData.success === false) {
+        toast({
+          title: "Error",
+          description: responseData.message || "Failed to modify request",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Success - update UI
+      setActedRequests(prev => new Set([...prev, selectedRequest.id]));
+      setModifiedRequests(prev => new Map([...prev, [selectedRequest.id, { discountType, discountValue }]]));
+      
+      setRequests(prev => prev.map(req => {
+        if (req.id === selectedRequest.id) {
+          const tat = calculateTAT(req.createdAtISO, modifiedAt);
+          return {
+            ...req,
+            status: "accepted" as const,
+            acceptedAt: modifiedAt,
+            tat,
+            discountType,
+            discountValue
+          };
+        }
+        return req;
+      }));
+      
+      toast({
+        title: "Request Modified",
+        description: `Request ${selectedRequest.id} has been modified successfully.`,
+        variant: "default"
+      });
+      
+    } catch (error) {
+      console.error('Failed to send modification data to backend:', error);
+      toast({
+        title: "Network Error",
+        description: `Failed to connect to backend. Please try again.`,
+        variant: "destructive"
+      });
+    } finally {
+      setSelectedRequest(null);
+    }
+  };
   // Filter and sort requests
   const filteredRequests = useMemo(() => {
     let filtered = requests.filter(req => {
@@ -688,7 +779,18 @@ export function RequestsList({
                 <div className="mb-2">
                   <div className="text-gray-500 text-xs font-medium mb-0.5">Discount</div>
                   <div className="text-foreground text-sm font-medium">
-                    {request.discountValue > 0 ? `₹${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` : 'No discount specified'}
+                    {(() => {
+                      // Check if this request has been modified
+                      const modifiedData = modifiedRequests.get(request.id);
+                      if (modifiedData) {
+                        return `₹${modifiedData.discountValue} (${modifiedData.discountType})`;
+                      }
+                      
+                      // Use original display logic for non-modified requests
+                      return request.discountValue > 0 
+                        ? `₹${request.discountValue} (${request.discountType === 'Per kg' ? '1 per kg' : request.discountType})` 
+                        : 'No discount specified';
+                    })()}
                   </div>
                 </div>
 
@@ -731,6 +833,14 @@ export function RequestsList({
                     </Button>
                     <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex py-3 text-base font-medium">
                       Reject
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      onClick={() => handleModify(request)} 
+                      className="flex items-center gap-2 py-3 text-base font-medium"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Modify
                     </Button>
                   </div>
                 )}
@@ -798,6 +908,22 @@ export function RequestsList({
             />
           </div>
         </div>
+      )}
+
+      {/* Modify Request Dialog */}
+      {selectedRequest && (
+        <ModifyRequestDialog
+          isOpen={modifyDialogOpen}
+          onClose={() => {
+            setModifyDialogOpen(false);
+            setSelectedRequest(null);
+          }}
+          onConfirm={handleModifyConfirm}
+          requestId={selectedRequest.id}
+          currentDiscountType={selectedRequest.discountType}
+          currentDiscountValue={selectedRequest.discountValue}
+          orderQty={selectedRequest.orderQty}
+        />
       )}
     </Card>
   );
