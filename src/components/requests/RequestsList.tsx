@@ -506,8 +506,10 @@ export function RequestsList({
         if (aIsPending && !bIsPending) return -1;
         if (!aIsPending && bIsPending) return 1;
         
-        // Then sort by request ID (latest first)
-        return (b.id || '').localeCompare(a.id || '');
+        // Then sort by request ID (latest first) - extract numeric part for proper sorting
+        const aIdNum = parseInt((a.id || '').replace('REQ-', '')) || 0;
+        const bIdNum = parseInt((b.id || '').replace('REQ-', '')) || 0;
+        return bIdNum - aIdNum;
       });
     }
 
