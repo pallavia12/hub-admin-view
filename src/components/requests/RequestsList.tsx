@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -241,6 +241,7 @@ export function RequestsList({
   const [statusFilter, setStatusFilter] = useState("all");
   const [actedRequests, setActedRequests] = useState<Set<string>>(new Set());
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [sortByCustomerId, setSortByCustomerId] = useState(false);
   const {
     toast
   } = useToast();
@@ -481,11 +482,37 @@ export function RequestsList({
       });
     }
   };
-  const filteredRequests = requests.filter(req => {
-    const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || req.requester.toLowerCase().includes(searchTerm.toLowerCase()) || req.department.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || req.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  }).slice(0, limit);
+  // Filter and sort requests
+  const filteredRequests = useMemo(() => {
+    let filtered = requests.filter(req => {
+      const matchesSearch = req.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        req.requester.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        req.department.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || req.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+
+    // Apply sorting
+    if (sortByCustomerId) {
+      // Sort by customer ID ascending
+      filtered.sort((a, b) => String(a.customerId || '').localeCompare(String(b.customerId || '')));
+    } else {
+      // Default: pending actions first, then by latest request ID
+      filtered.sort((a, b) => {
+        // First, prioritize pending requests
+        const aIsPending = a.status === "pending";
+        const bIsPending = b.status === "pending";
+        
+        if (aIsPending && !bIsPending) return -1;
+        if (!aIsPending && bIsPending) return 1;
+        
+        // Then sort by request ID (latest first)
+        return (b.id || '').localeCompare(a.id || '');
+      });
+    }
+
+    return filtered.slice(0, limit);
+  }, [requests, searchTerm, statusFilter, sortByCustomerId, limit]);
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -539,6 +566,14 @@ export function RequestsList({
                   <SelectItem value="escalated">Escalated</SelectItem>
                 </SelectContent>
               </Select>
+              
+              <Button
+                variant="outline"
+                onClick={() => setSortByCustomerId(!sortByCustomerId)}
+                className="whitespace-nowrap"
+              >
+                {sortByCustomerId ? "Default Sort" : "Sort by Customer ID"}
+              </Button>
             </div>}
         </div>
       </CardHeader>
