@@ -151,6 +151,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
           return "accepted";
         case "rejected":
           return "rejected";
+        case "modified":
+          return "accepted"; // Show as accepted since it was processed
         default:
           return "pending";
       }
@@ -550,7 +552,9 @@ export function RequestsList({
             acceptedAt: modifiedAt,
             tat,
             discountType,
-            discountValue
+            discountValue,
+            adminStatus: 'MODIFIED',
+            adminReviewedAt: adminReviewedAt
           };
         }
         return req;
@@ -851,7 +855,7 @@ export function RequestsList({
                 {(request.status === "accepted" || request.status === "rejected") && (request.acceptedAt || request.adminReviewedAt) && (
                   <div className="pt-4 border-t border-border">
                     <div className="text-foreground font-semibold">
-                      {request.status.toUpperCase()} {(() => {
+                      {request.adminStatus === 'MODIFIED' ? 'MODIFIED' : request.status.toUpperCase()} {(() => {
                         // Use admin reviewed timestamp if available, otherwise use acceptedAt
                         const timestampToShow = request.adminReviewedAt || request.acceptedAt;
                         if (!timestampToShow) return 'Invalid Date';
