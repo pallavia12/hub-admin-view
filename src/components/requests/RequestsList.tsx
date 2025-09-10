@@ -657,13 +657,18 @@ export function RequestsList({
                 </SelectContent>
               </Select>
               
-              <Button
-                variant="outline"
-                onClick={() => setSortByCustomerId(!sortByCustomerId)}
-                className="whitespace-nowrap"
+              <Select
+                value={sortByCustomerId ? "customerId" : "default"}
+                onValueChange={(value) => setSortByCustomerId(value === "customerId")}
               >
-                {sortByCustomerId ? "Default Sort" : "Sort by Customer ID"}
-              </Button>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Default</SelectItem>
+                  <SelectItem value="customerId">Customer ID</SelectItem>
+                </SelectContent>
+              </Select>
             </div>}
         </div>
       </CardHeader>

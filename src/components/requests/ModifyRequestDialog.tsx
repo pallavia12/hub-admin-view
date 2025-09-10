@@ -33,15 +33,31 @@ export function ModifyRequestDialog({
   // Pre-fill form with current values when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setDiscountType(currentDiscountType);
-      setIsCustomSelected(currentDiscountType === "Custom");
+      console.log("Dialog opened with values:", {
+        currentDiscountType,
+        currentDiscountValue,
+        orderQty
+      });
+      
+      // Map API discount types to dialog options
+      let mappedDiscountType = "";
+      if (currentDiscountType === "Per kg" || currentDiscountType === "Re 1 per kg") {
+        mappedDiscountType = "Re 1 per kg";
+      } else if (currentDiscountType === "Rs 0.75 per kg") {
+        mappedDiscountType = "Rs 0.75 per kg";
+      } else if (currentDiscountType && currentDiscountType !== "Per kg") {
+        mappedDiscountType = "Custom";
+      }
+      
+      setDiscountType(mappedDiscountType);
+      setIsCustomSelected(mappedDiscountType === "Custom");
       
       // Calculate and set discount value based on type
-      if (currentDiscountType === "Re 1 per kg") {
+      if (mappedDiscountType === "Re 1 per kg") {
         setDiscountValue(orderQty.toString());
-      } else if (currentDiscountType === "Rs 0.75 per kg") {
+      } else if (mappedDiscountType === "Rs 0.75 per kg") {
         setDiscountValue((orderQty * 0.75).toString());
-      } else if (currentDiscountType === "Custom") {
+      } else if (mappedDiscountType === "Custom") {
         setDiscountValue(currentDiscountValue.toString());
       } else {
         setDiscountValue("");
