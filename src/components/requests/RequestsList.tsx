@@ -517,7 +517,7 @@ export function RequestsList({
           AdminReviewedAt: adminReviewedAt,
           AdminStatus: 'MODIFIED',
           adminDiscountType: discountType,
-          adminDiscountValue: discountValue
+          adminDiscountValue: discountType === 'Custom' ? discountValue : null
         })
       });
       
