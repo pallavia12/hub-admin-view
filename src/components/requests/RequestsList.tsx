@@ -255,7 +255,7 @@ export function RequestsList({
     const fetchRequests = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/admin-fetch-requests', {
+        const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook/admin-fetch-requests', {
           //'http://localhost:5678/webhook-test/admin-fetch-requests', {
           method: 'POST',
           headers: {
