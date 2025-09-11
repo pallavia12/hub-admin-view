@@ -95,10 +95,10 @@ interface RequestsListProps {
 }
 const transformApiRequest = (apiRequest: ApiRequest): Request => {
   const formatDate = (dateString: string) => {
-    // Parse IST date directly without timezone conversion
+    // Parse IST date directly without timezone conversion in dd/mm/yyyy format
     const [datePart] = dateString.replace('.000+0000', '').split('T');
     const [year, month, day] = datePart.split('-');
-    return `${month}/${day}/${year}`;
+    return `${day}/${month}/${year}`;
   };
 
   const formatDateTime = (dateString: string) => {
@@ -107,7 +107,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     const [year, month, day] = datePart.split('-');
     const [hour, minute, second] = timePart.split(':');
     
-    const displayDate = `${month}/${day}/${year}`;
+    const displayDate = `${day}/${month}/${year}`;
     const hourNum = parseInt(hour);
     const ampm = hourNum >= 12 ? 'PM' : 'AM';
     const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
@@ -126,8 +126,8 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     const [year, month, day] = datePart.split('-');
     const [hour, minute, second] = timePart.split(':');
     
-    // Format as IST display
-    const displayDate = `${month}/${day}/${year}`;
+    // Format as IST display in dd/mm/yyyy format
+    const displayDate = `${day}/${month}/${year}`;
     const hourNum = parseInt(hour);
     const ampm = hourNum >= 12 ? 'PM' : 'AM';
     const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
@@ -210,7 +210,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     eligibilityReason: apiRequest.eligibilityReason,
     // Additional fields for the new UI requirements
     customerId: apiRequest.customerId,
-    contactNumber: apiRequest.ContactNumber,
+    contactNumber: String(apiRequest.customerContact),
     requestedByContact: apiRequest.requestedByContact,
     requestedBy: apiRequest.requestedBy,
     discountType: finalDiscountType,
@@ -319,30 +319,50 @@ export function RequestsList({
     fetchRequests();
   }, [toast]);
   const calculateTAT = (createdAtISO: string, acceptedAt: string) => {
-    // Parse IST timestamps directly without timezone conversion
-    // Both timestamps are already in IST format
-    const parseISTDate = (dateString: string) => {
-      const [datePart, timePart] = dateString.replace('.000+0000', '').split('T');
-      const [year, month, day] = datePart.split('-');
-      const [hour, minute, second] = timePart.split(':');
-      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
-    };
+    try {
+      // Parse IST timestamps directly without timezone conversion
+      const parseISTDate = (dateString: string) => {
+        // Handle both API format (.000+0000) and ISO format (Z)
+        const cleanDateString = dateString.replace(/\.000\+0000$|Z$/, '');
+        const [datePart, timePart] = cleanDateString.split('T');
+        
+        if (!datePart || !timePart) {
+          throw new Error('Invalid date format');
+        }
+        
+        const [year, month, day] = datePart.split('-').map(num => parseInt(num, 10));
+        const [hour, minute, second = 0] = timePart.split(':').map(num => parseInt(num, 10));
+        
+        // Validate date components
+        if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute) || isNaN(second)) {
+          throw new Error('Invalid date components');
+        }
+        
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
 
-    const created = parseISTDate(createdAtISO);
-    const accepted = parseISTDate(acceptedAt);
+      const created = parseISTDate(createdAtISO);
+      const accepted = parseISTDate(acceptedAt);
 
-    // Validate dates
-    if (isNaN(created.getTime()) || isNaN(accepted.getTime())) {
-      return "Invalid date";
+      // Validate parsed dates
+      if (isNaN(created.getTime()) || isNaN(accepted.getTime())) {
+        return "Invalid date";
+      }
+      
+      const diffMs = accepted.getTime() - created.getTime();
+      if (diffMs < 0) {
+        return "Invalid time range";
+      }
+      
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return `${days} days, ${hours} hours, ${minutes} minutes`;
+    } catch (error) {
+      console.error('TAT calculation error:', error, { createdAtISO, acceptedAt });
+      return "Unable to calculate";
     }
-    const diffMs = accepted.getTime() - created.getTime();
-    if (diffMs < 0) {
-      return "Invalid time range";
-    }
-    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor(diffMs % (1000 * 60 * 60 * 24) / (1000 * 60 * 60));
-    const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
-    return `${days} days, ${hours} hours, ${minutes} minutes`;
   };
   const handleApprove = async (requestId: string) => {
     const acceptedAt = new Date().toISOString();
