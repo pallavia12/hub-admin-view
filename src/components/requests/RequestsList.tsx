@@ -809,7 +809,16 @@ export function RequestsList({
                       // Check if this request has been modified
                       const modifiedData = modifiedRequests.get(request.id);
                       if (modifiedData) {
-                        return `₹${modifiedData.discountValue} (${modifiedData.discountType})`;
+                        let calculatedDiscountValue = modifiedData.discountValue;
+                        
+                        // Calculate discount value based on type
+                        if (modifiedData.discountType === "Re 1 per kg") {
+                          calculatedDiscountValue = request.orderQty;
+                        } else if (modifiedData.discountType === "Rs 0.75 per kg") {
+                          calculatedDiscountValue = request.orderQty * 0.75;
+                        }
+                        
+                        return `₹${calculatedDiscountValue} (${modifiedData.discountType})`;
                       }
                       
                       // Use original display logic for non-modified requests
