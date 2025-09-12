@@ -580,6 +580,10 @@ export function RequestsList({
         return req;
       }));
       
+      // Close the dialog on success
+      setModifyDialogOpen(false);
+      setSelectedRequest(null);
+      
       toast({
         title: "Request Modified",
         description: `Request ${selectedRequest.id} has been modified successfully.`,
