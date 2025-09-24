@@ -573,8 +573,7 @@ export function RequestsList({
             tat,
             discountType,
             discountValue,
-            adminStatus: 'MODIFIED',
-            adminReviewedAt: adminReviewedAt
+            adminStatus: 'MODIFIED'
           };
         }
         return req;
