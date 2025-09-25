@@ -469,7 +469,7 @@ export function RequestsList({
 
     // Send data to backend and wait for response
     try {
-      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
