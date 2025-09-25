@@ -32,6 +32,7 @@ interface ApiRequest {
   CustomerTypeId: number;
   abmDiscountValue: number | null;
   ABM_Id: number;
+  ABMContactNum: string;
   abmOrderQty: number | null;
   reason: string | null;
   abmDiscountType: string | null;
@@ -219,7 +220,7 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     abmId: apiRequest.ABM_Id,
     abmUserName: apiRequest.ABM_UserName,
     abmRemarks: apiRequest.abmRemarks,
-    abmContactNumber: apiRequest.ContactNumber,
+    abmContactNumber: apiRequest.ABMContactNum,
     escalatedAt: reviewDateTime.date,
     escalatedAtTime: reviewDateTime.time,
     skuName: apiRequest.skuName,
