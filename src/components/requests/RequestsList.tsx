@@ -27,15 +27,18 @@ interface ApiRequest {
   ContactNumber: string;
   skuId: number | null;
   ABM_UserName: string;
+  ABMUserName?: string;
   requestedBy: number;
   orderMode: number | null;
   CustomerTypeId: number;
   abmDiscountValue: number | null;
   ABM_Id: number;
+  ABMId?: number;
   abmOrderQty: number | null;
   reason: string | null;
   abmDiscountType: string | null;
   abmRemarks: string;
+  ABMContactNum?: string;
   adminReviewedAt: string | null;
   adminReviewedBy: number | null;
   adminStatus: string | null;
@@ -230,10 +233,10 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     discountType: finalDiscountType,
     requestedDate: dateTime.date,
     requestedTime: dateTime.time,
-    abmId: apiRequest.ABM_Id,
-    abmUserName: apiRequest.ABM_UserName,
+    abmId: apiRequest.ABMId ?? apiRequest.ABM_Id,
+    abmUserName: apiRequest.ABMUserName ?? apiRequest.ABM_UserName,
     abmRemarks: apiRequest.abmRemarks,
-    abmContactNumber: apiRequest.ContactNumber,
+    abmContactNumber: apiRequest.ABMContactNum ?? apiRequest.ContactNumber,
     escalatedAt: reviewDateTime.date,
     escalatedAtTime: reviewDateTime.time,
     skuName: apiRequest.skuName,
