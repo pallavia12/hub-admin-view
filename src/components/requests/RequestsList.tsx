@@ -39,6 +39,8 @@ interface ApiRequest {
   adminReviewedAt: string | null;
   adminReviewedBy: number | null;
   adminStatus: string | null;
+  adminDiscountType?: string | null;
+  adminDiscountValue?: number | null;
   CustomerTypeName: string;
   ShopImage: string;
 }
@@ -182,10 +184,22 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     return "low";
   };
 
-  // Handle MODIFIED status - use ABM values if available
+  // Handle MODIFIED status - prefer Admin values when admin has modified, else ABM values, else original
   const finalOrderQty = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmOrderQty !== null ? apiRequest.abmOrderQty : apiRequest.orderQty;
-  const finalDiscountValue = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null ? apiRequest.abmDiscountValue : apiRequest.discountValue ?? 0;
-  const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== "" ? apiRequest.abmDiscountType : apiRequest.discountType;
+
+  const finalDiscountValue =
+    (apiRequest.adminStatus === "MODIFIED" && apiRequest.adminDiscountValue !== null && apiRequest.adminDiscountValue !== undefined)
+      ? apiRequest.adminDiscountValue
+      : (apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null
+          ? apiRequest.abmDiscountValue
+          : (apiRequest.discountValue ?? 0));
+
+  const finalDiscountType =
+    (apiRequest.adminStatus === "MODIFIED" && apiRequest.adminDiscountType !== null && apiRequest.adminDiscountType !== undefined && apiRequest.adminDiscountType !== "")
+      ? apiRequest.adminDiscountType
+      : (apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== ""
+          ? apiRequest.abmDiscountType
+          : apiRequest.discountType);
 
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
   const dateTime = formatISTDateTime(apiRequest.createdAt);
