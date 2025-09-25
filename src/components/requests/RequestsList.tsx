@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Check, X, Eye, Loader2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { ModifyRequestDialog } from "./ModifyRequestDialog";
 interface ApiRequest {
   requestId: number;
@@ -265,6 +267,9 @@ export function RequestsList({
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [modifiedRequests, setModifiedRequests] = useState<Map<string, { discountType: string; discountValue: number }>>(new Map());
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const {
     toast
   } = useToast();
@@ -453,7 +458,7 @@ export function RequestsList({
       });
     }
   };
-  const handleReject = async (requestId: string) => {
+  const handleReject = async (requestId: string, adminRemarks: string) => {
     const rejectedAt = new Date().toISOString();
     // Convert to IST format
     const istDate = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000);
@@ -464,7 +469,7 @@ export function RequestsList({
 
     // Send data to backend and wait for response
     try {
-      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
+      const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/b49d2d8b-0dec-442e-b9c1-40b5fd9801de', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -475,7 +480,8 @@ export function RequestsList({
           RequestId: requestId.replace('REQ-', ''),
           AdminUsername: adminUsername,
           AdminReviewedAt: adminReviewedAt,
-          AdminStatus: 'REJECTED'
+          AdminStatus: 'REJECTED',
+          adminRemarks: adminRemarks
         })
       });
       
@@ -529,6 +535,21 @@ export function RequestsList({
   const handleModify = (request: Request) => {
     setSelectedRequest(request);
     setModifyDialogOpen(true);
+  };
+
+  const openRejectDialog = (requestId: string) => {
+    setRejectingRequestId(requestId);
+    setRejectReason("");
+    setRejectDialogOpen(true);
+  };
+
+  const confirmRejectWithReason = async () => {
+    if (!rejectingRequestId) return;
+    const id = rejectingRequestId;
+    setRejectDialogOpen(false);
+    await handleReject(id, rejectReason);
+    setRejectingRequestId(null);
+    setRejectReason("");
   };
 
   const handleModifyConfirm = async (discountType: string, discountValue: number) => {
@@ -886,7 +907,7 @@ export function RequestsList({
                     <Button variant="default" onClick={() => handleApprove(request.id)} className="flex py-3 text-base font-medium">
                       Accept
                     </Button>
-                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex py-3 text-base font-medium">
+                    <Button variant="destructive" onClick={() => openRejectDialog(request.id)} className="flex py-3 text-base font-medium">
                       Reject
                     </Button>
                     <Button 
@@ -980,6 +1001,26 @@ export function RequestsList({
           orderQty={selectedRequest.orderQty}
         />
       )}
+
+      {/* Reject Reason Dialog */}
+      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter rejection reason</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Type the reason for rejection"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setRejectDialogOpen(false); setRejectingRequestId(null); }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRejectWithReason}>Confirm Reject</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
