@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Check, X, Eye, Loader2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { ModifyRequestDialog } from "./ModifyRequestDialog";
 interface ApiRequest {
   requestId: number;
@@ -26,20 +28,25 @@ interface ApiRequest {
   customerId: number;
   ContactNumber: string;
   skuId: number | null;
-  ABMUserName: string;
+  ABM_UserName: string;
+  ABMUserName?: string;
   requestedBy: number;
   orderMode: number | null;
   CustomerTypeId: number;
   abmDiscountValue: number | null;
-  ABMId: number;
-  ABMContactNum: string;
+  ABM_Id: number;
+  ABMId?: number;
+  ABMContactNum?: string;
   abmOrderQty: number | null;
   reason: string | null;
   abmDiscountType: string | null;
   abmRemarks: string;
+  ABMContactNum?: string;
   adminReviewedAt: string | null;
   adminReviewedBy: number | null;
   adminStatus: string | null;
+  adminDiscountType?: string | null;
+  adminDiscountValue?: number | null;
   CustomerTypeName: string;
   ShopImage: string;
 }
@@ -183,10 +190,22 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     return "low";
   };
 
-  // Handle MODIFIED status - use ABM values if available
+  // Handle MODIFIED status - prefer Admin values when admin has modified, else ABM values, else original
   const finalOrderQty = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmOrderQty !== null ? apiRequest.abmOrderQty : apiRequest.orderQty;
-  const finalDiscountValue = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null ? apiRequest.abmDiscountValue : apiRequest.discountValue ?? 0;
-  const finalDiscountType = apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== "" ? apiRequest.abmDiscountType : apiRequest.discountType;
+
+  const finalDiscountValue =
+    (apiRequest.adminStatus === "MODIFIED" && apiRequest.adminDiscountValue !== null && apiRequest.adminDiscountValue !== undefined)
+      ? apiRequest.adminDiscountValue
+      : (apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountValue !== null
+          ? apiRequest.abmDiscountValue
+          : (apiRequest.discountValue ?? 0));
+
+  const finalDiscountType =
+    (apiRequest.adminStatus === "MODIFIED" && apiRequest.adminDiscountType !== null && apiRequest.adminDiscountType !== undefined && apiRequest.adminDiscountType !== "")
+      ? apiRequest.adminDiscountType
+      : (apiRequest.abmStatus === "MODIFIED" && apiRequest.abmDiscountType !== null && apiRequest.abmDiscountType !== ""
+          ? apiRequest.abmDiscountType
+          : apiRequest.discountType);
 
   const safeSkuName = apiRequest.skuName ?? "Unknown SKU";
   const dateTime = formatISTDateTime(apiRequest.createdAt);
@@ -217,10 +236,10 @@ const transformApiRequest = (apiRequest: ApiRequest): Request => {
     discountType: finalDiscountType,
     requestedDate: dateTime.date,
     requestedTime: dateTime.time,
-    abmId: apiRequest.ABMId,
-    abmUserName: apiRequest.ABMUserName,
+    abmId: apiRequest.ABMId ?? apiRequest.ABM_Id,
+    abmUserName: apiRequest.ABMUserName ?? apiRequest.ABM_UserName,
     abmRemarks: apiRequest.abmRemarks,
-    abmContactNumber: apiRequest.ABMContactNum,
+    abmContactNumber: apiRequest.ABMContactNum ?? apiRequest.ContactNumber,
     escalatedAt: reviewDateTime.date,
     escalatedAtTime: reviewDateTime.time,
     skuName: apiRequest.skuName,
@@ -249,6 +268,9 @@ export function RequestsList({
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [modifiedRequests, setModifiedRequests] = useState<Map<string, { discountType: string; discountValue: number }>>(new Map());
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const {
     toast
   } = useToast();
@@ -437,7 +459,7 @@ export function RequestsList({
       });
     }
   };
-  const handleReject = async (requestId: string) => {
+  const handleReject = async (requestId: string, adminRemarks: string) => {
     const rejectedAt = new Date().toISOString();
     // Convert to IST format
     const istDate = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000);
@@ -459,7 +481,8 @@ export function RequestsList({
           RequestId: requestId.replace('REQ-', ''),
           AdminUsername: adminUsername,
           AdminReviewedAt: adminReviewedAt,
-          AdminStatus: 'REJECTED'
+          AdminStatus: 'REJECTED',
+          adminRemarks: adminRemarks
         })
       });
       
@@ -513,6 +536,21 @@ export function RequestsList({
   const handleModify = (request: Request) => {
     setSelectedRequest(request);
     setModifyDialogOpen(true);
+  };
+
+  const openRejectDialog = (requestId: string) => {
+    setRejectingRequestId(requestId);
+    setRejectReason("");
+    setRejectDialogOpen(true);
+  };
+
+  const confirmRejectWithReason = async () => {
+    if (!rejectingRequestId) return;
+    const id = rejectingRequestId;
+    setRejectDialogOpen(false);
+    await handleReject(id, rejectReason);
+    setRejectingRequestId(null);
+    setRejectReason("");
   };
 
   const handleModifyConfirm = async (discountType: string, discountValue: number) => {
@@ -574,8 +612,7 @@ export function RequestsList({
             tat,
             discountType,
             discountValue,
-            adminStatus: 'MODIFIED',
-            adminReviewedAt: adminReviewedAt
+            adminStatus: 'MODIFIED'
           };
         }
         return req;
@@ -871,7 +908,7 @@ export function RequestsList({
                     <Button variant="default" onClick={() => handleApprove(request.id)} className="flex py-3 text-base font-medium">
                       Accept
                     </Button>
-                    <Button variant="destructive" onClick={() => handleReject(request.id)} className="flex py-3 text-base font-medium">
+                    <Button variant="destructive" onClick={() => openRejectDialog(request.id)} className="flex py-3 text-base font-medium">
                       Reject
                     </Button>
                     <Button 
@@ -965,6 +1002,26 @@ export function RequestsList({
           orderQty={selectedRequest.orderQty}
         />
       )}
+
+      {/* Reject Reason Dialog */}
+      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enter rejection reason</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Type the reason for rejection"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setRejectDialogOpen(false); setRejectingRequestId(null); }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRejectWithReason}>Confirm Reject</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
