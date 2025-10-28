@@ -321,6 +321,14 @@ export function RequestsList({
         // Ensure we have data and it's an array
         if (apiResponse.success && apiResponse.data && Array.isArray(apiResponse.data)) {
           console.log('Processing data:', apiResponse.data);
+          
+          // Handle empty response case
+          if (apiResponse.data.length === 0) {
+            setRequests([]);
+            setError('No requests created for you to approve.');
+            return;
+          }
+          
           const transformedRequests = apiResponse.data.map(transformApiRequest);
           console.log('Transformed requests:', transformedRequests);
           setRequests(transformedRequests);
