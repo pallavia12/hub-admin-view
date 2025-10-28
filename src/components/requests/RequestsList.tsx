@@ -278,6 +278,7 @@ export function RequestsList({
     const fetchRequests = async () => {
       try {
         setLoading(true);
+        // Get username from localStorage for API authentication
         const username = localStorage.getItem('username') || '';
         const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook/admin-fetch-requests', {
           method: 'POST',
