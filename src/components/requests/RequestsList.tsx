@@ -278,12 +278,13 @@ export function RequestsList({
     const fetchRequests = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook/admin-fetch-requests', {
-          //'http://localhost:5678/webhook-test/admin-fetch-requests', {
+        const username = localStorage.getItem('username') || '';
+        const response = await fetch('https://ninjasndanalytics.app.n8n.cloud/webhook-test/admin-fetch-requests', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({ username })
         });
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
